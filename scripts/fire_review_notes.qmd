@@ -1,0 +1,226 @@
+---
+title: "JT Fire Candidate Review"
+date: today
+format:
+  html:
+    theme: flatly
+    toc: true
+    toc-depth: 2
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+```{r setup}
+library(sf)
+library(dplyr)
+library(knitr)
+library(kableExtra)
+library(leaflet)
+library(here)
+knitr::opts_chunk$set(paged.print = FALSE)
+
+OUT        <- here("output", "site_selection")
+candidates <- st_read(file.path(OUT, "fire_perimeters_candidates.gpkg"), quiet = TRUE) |>
+  mutate(acres     = round(acres),
+         pct_jt    = paste0(round(pct_jt * 100), "%"),
+         fire_name = trimws(fire_name),
+         label     = trimws(label),
+         source    = recode(source, calfire = "CA", nv_wildfire = "NV", mtbs = "MTBS"))
+
+CONFIRMED <- c(
+  "QUAIL_2012", "CAHUILA_2017", "STAR_2019",
+  "COLES FLAT_2020", "DOME_2020", "NADEAU_2020", "IVANPAH_2020",
+  "MOJAVE_2021", "POND_2021",
+  "SHEEP_2022", "ELK TRAIL_2022",
+  "YORK_2023", "GEOLOGY_2023", "BOULEVARD_2023",
+  "CAL_2024", "JOHNSON_2024"
+)
+```
+
+## Candidate fires from R analysis
+
+The R script identified **`r nrow(candidates)`** candidate fires (CalFire GDB for California + Nevada Wildland Fire History, 2011–2024, ≥40 acres, ≥60% overlap with JT presence cells).
+
+```{r all-candidates}
+#| results: asis
+candidates |>
+  st_drop_geometry() |>
+  arrange(year) |>
+  mutate(`#` = row_number()) |>
+  select(`#`, fire_name, year, acres, pct_jt, other_burn_years, source) |>
+  rename(`Fire name` = fire_name, Year = year, Acres = acres,
+         `% JT` = pct_jt, `Other burn years` = other_burn_years, Source = source) |>
+  kable()
+```
+
+------------------------------------------------------------------------
+
+## Fires excluded — my observations
+
+```{r exclusions}
+#| results: asis
+excluded <- tribble(
+  ~label,                ~reason,
+  "WELLS_2011",          "Missing 2011 imagery — only 2009 (blurry) and 2013 available. Recent imagery (2023) shows poor recovery.",
+  "OASIS_2011",          "Imagery shows mostly residential area.",
+  "JOHNSON_2011",        "Hilly terrain; little visible vegetation.",
+  "ROUNDUP_2011",        "No Joshua trees visible inside or outside perimeter.",
+  "EL MIRAGE_2011",      "No pre-fire imagery; predominantly rocky substrate.",
+  "EAST_2011",           "Too close to urbanisation.",
+  "RIVERBED_2011",       "No pre-fire imagery available.",
+  "ABIGAIL_2011",        "No pre-fire imagery available.",
+  "CAHUILLA_2011",       "No pre-fire imagery; mostly rock.",
+  "CHARLIE_2011",        "Too close to urban.",
+  "BOWEN_2012",          "Poor pre-fire imagery quality.",
+  "OASIS_2012_1",        "Poor imagery; insufficient JT density.",
+  "OASIS_2012_2",        "Residential land within and adjacent to perimeter.",
+  "HIGH_2017",           "Urban setting.",
+  "PITZER_2020",         "Buildings within perimeter; no JT visible.",
+  "STANDING ROCK_2020",  "Too urban.",
+  "OWENS_2021",          "Not many JT; insufficient density.",
+  "PINE_2021",           "Dead vegetation visible in pre-fire 2015 imagery — likely confounded by adjacent fires.",
+  "FARMINGTON_2021",     "Too urban.",
+  "GRAPEVINE_2021",      "Small fire; no JT visible.",
+  "NONAME_2023",         "No JT visible.",
+  "BELLA_2024",          "Difficult to count and measure JT; removed after further inspection.",
+  "DOVE_2024",           "Imagery only available through 2023; insufficient post-fire coverage.",
+  "TURBINE_2024",        "Removed after further inspection.",
+  "POLE_2024",           "No JT visible.",
+  "10TH_2024",           "Too urban.",
+  # ── Nevada undecided fires — reviewed in Google Earth Pro ──────────────
+  "Pahroc_2012",         "No Joshua trees visible.",
+  "Toquop_2012",         "No Joshua trees visible.",
+  "Santa Clara_2011",    "No quality pre-fire imagery available; 100% within 2005 Duzak fire footprint — dead JT visible outside perimeter are attributable to the 2005 burn, not 2011.",
+  "Lime_2013",           "100% within 2005 Duzak fire footprint (complete reburn); dead JT outside perimeter from 2005 burn.",
+  "Tule Springs_2013",   "100% within 2005 Duzak fire footprint (complete reburn); dead JT outside perimeter from 2005 burn.",
+  "White Rock_2012",     "No quality pre-fire imagery available.",
+  "Mule_2016",           "No Joshua trees visible in pre-fire imagery.",
+  "Lovell_2016",         "JT presence ambiguous in pre-fire imagery — no clear shadows or distinguishing structure.",
+  "Nat Out Nine_2017",   "No Joshua trees visible.",
+  "Mackie_2017",         "No Joshua trees visible.",
+  "Jones Springs_2019",  "No Joshua trees visible.",
+  "Gregerson_2019",      "No Joshua trees visible.",
+  "Cottonwood_2020",     "Joshua trees too sparse/difficult to identify.",
+  "Lookout Mtn_2020",    "Post-fire imagery insufficient quality.",
+  "Goodsprings_2021",    "Post-fire imagery insufficient quality.",
+  "Bunker Peak_2021",    "Imagery unclear; no JT visible.",
+  "White Rock_2022",     "Complete reburn — 100% previously burned in 1993 (Bunker), 2006 (Cabin), and 2012 (White Rock); no unburned interior.",
+  "York_2023",           "Duplicate of confirmed YORK_2023 (CalFire); also limited post-fire imagery available.",
+  "Sandy Valley 2_2024", "No post-fire imagery available.",
+  "BIRD SPRINGS_2024",   "No post-fire imagery available; previous burn 2005."
+)
+
+not_found <- excluded$label[!excluded$label %in% candidates$label]
+if (length(not_found) > 0) cat("⚠ Not found in candidates:", paste(not_found, collapse = ", "))
+
+excluded |>
+  left_join(candidates |> st_drop_geometry() |> select(label, fire_name, year, acres, pct_jt, other_burn_years),
+            by = "label") |>
+  select(fire_name, year, acres, pct_jt, other_burn_years, reason) |>
+  rename(`Fire name` = fire_name, Year = year, Acres = acres, `% JT` = pct_jt,
+         `Other burn years` = other_burn_years, Reason = reason) |>
+  kable() |>
+  column_spec(6, width = "22em")
+```
+
+------------------------------------------------------------------------
+
+## Confirmed fires
+
+Fires retained after manual Google Earth Pro inspection.
+
+> **Note — Coles Flat 2020** (41,111 ac): federal land fire not in CalFire GDB, included via MTBS (86% JT overlap). Sites are restricted to the NW reference area (36°5'N, 117°36'W) where Joshua trees are clearly visible.
+
+```{r confirmed}
+candidates |>
+  st_drop_geometry() |>
+  filter(label %in% CONFIRMED) |>
+  arrange(year) |>
+  mutate(`#` = row_number()) |>
+  select(`#`, fire_name, fire_date, acres, pct_jt, other_burn_years, source) |>
+  rename(`Fire name` = fire_name, Date = fire_date, Acres = acres,
+         `% JT` = pct_jt, `Other burn years` = other_burn_years, Source = source) |>
+  kable()
+```
+
+### Undecided fires
+
+```{r undecided}
+undecided <- candidates |>
+  st_drop_geometry() |>
+  filter(!label %in% CONFIRMED, !label %in% excluded$label)
+
+if (nrow(undecided) == 0) {
+  cat("All candidate fires have been assigned a decision.")
+} else {
+  undecided |>
+    arrange(year) |>
+    mutate(`#` = row_number()) |>
+    select(`#`, fire_name, year, acres, pct_jt, other_burn_years, source) |>
+    rename(`Fire name` = fire_name, Year = year, Acres = acres,
+           `% JT` = pct_jt, `Other burn years` = other_burn_years, Source = source) |>
+    kable()
+}
+```
+
+### Items to resolve
+
+-   **JOHNSON_2024**: 100% of perimeter previously burned (1942 + 1960). All observer marker sites fall in prior-burn area. Keep or exclude?
+
+-   **YORK_2023**: Limited post-fire imagery available in Google Earth Pro — most recent historical image predates the fire (7/20/2023, one week before ignition). A 2024 image exists in the current base layer but has not yet been archived in the historical slider. Likely needs to be removed; to be decided.
+
+### Notes for future work
+
+-   **Duzak 2005** (Nevada, ~332,000 ac): Three excluded fires (Santa Clara 2011, Lime 2013, Tule Springs 2013) are complete reburns within this large Nevada fire. The Duzak 2005 fire itself may be worth adding as a candidate in a historical fires analysis — dead JT are clearly visible across the landscape in post-fire imagery.
+
+------------------------------------------------------------------------
+
+## Fire selection summary
+
+```{r flowchart-data}
+n_candidates <- nrow(candidates)
+n_confirmed  <- length(CONFIRMED)
+n_excluded   <- nrow(excluded)
+n_undecided  <- n_candidates - n_confirmed - n_excluded
+```
+
+```{r summary-table}
+tribble(
+  ~Step, ~Filter, ~N,
+  "1. Load sources",   "CalFire GDB (CA) + Nevada Wildland Fire History + MTBS",  "~27,000",
+  "2. Year & size",    "2011–2024, ≥40 acres",                                    "~3,260",
+  "3. JT presence",    "≥60% overlap with JT species range",                      as.character(n_candidates),
+  "4. GEP inspection", "Joshua trees confirmed in Google Earth Pro",               as.character(n_confirmed),
+  "5. Site sampling",  "Plots placed inside confirmed perimeters",                 "→ 02_sample_sites.R"
+) |>
+  kable(col.names = c("Step", "Filter applied", "Fires")) |>
+  column_spec(2, width = "20em")
+```
+
+------------------------------------------------------------------------
+
+## Map of confirmed fires
+
+```{r map}
+confirmed_sf <- candidates |>
+  filter(label %in% CONFIRMED) |>
+  st_transform(4326)
+
+years <- sort(unique(confirmed_sf$year))
+pal   <- colorNumeric("magma", domain = range(years), reverse = TRUE)
+
+leaflet() |>
+  addProviderTiles("CartoDB.Positron") |>
+  addPolygons(data = confirmed_sf,
+              fillColor   = ~pal(year), fillOpacity = 1,
+              color       = ~pal(year), weight = 2,
+              label       = ~paste0(fire_name, " (", year, ") — ", acres,
+                                    " ac | ", pct_jt, " JT | burns: ", other_burn_years) |>
+                              lapply(htmltools::HTML)) |>
+  addLegend(pal = pal, values = confirmed_sf$year,
+            labFormat = labelFormat(big.mark = ""),
+            title = paste0("Confirmed fires<br><small>n=", nrow(confirmed_sf), "</small>"),
+            position = "bottomright")
+```
