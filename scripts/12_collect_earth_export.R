@@ -20,7 +20,7 @@ source(here::here("scripts", "00_utils.R"))
 
 SURVEY_NAME <- "jt_fire_recovery"
 
-# CSV columns to include (beyond the required CE columns id/YCoordinate/XCoordinate/elevation/slope/aspect)
+# CSV columns to include (beyond the required CE columns id/YCoordinate/XCoordinate)
 # Names here must exactly match the CSV file columns; imagery dates are renamed
 # below to match the IDM attribute names used in the Designer form.
 SUPPLEMENTARY_COLS <- c(
@@ -48,11 +48,10 @@ sites <- bind_rows(
 ) %>%
   mutate(pair_id = if_else(is.na(pair_id), "", pair_id)) %>%
   rename(id = site_id, YCoordinate = lat, XCoordinate = lon) %>%
-  mutate(elevation = 0L, slope = 0L, aspect = 0L) %>%
   # Key columns (id, fire_name, fire_date) must come before YCoordinate/XCoordinate
   # because fire_name and fire_date are marked as keys in the Designer IDM.
   select(id, fire_name, fire_date,
-         YCoordinate, XCoordinate, elevation, slope, aspect,
+         YCoordinate, XCoordinate,
          all_of(SUPPLEMENTARY_COLS)) %>%
   # Rename to match Designer IDM attribute names (required for "From CSV" autofill)
   rename(
