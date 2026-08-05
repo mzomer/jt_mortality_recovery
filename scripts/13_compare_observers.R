@@ -387,13 +387,19 @@ mortality_by_fire
 
 # Sites for review ----
 
-mortality_difference_cutoff <- 10
+mortality_difference_cutoff >= 10
 
 sites_to_inspect <- agreement_data %>%
   filter(mortality_abs_diff > mortality_difference_cutoff) %>%
   arrange(desc(mortality_abs_diff)) %>%
-  select(id, fire_name, plot_location, mortality_percentage_maya,
-         mortality_percentage_lucia, mortality_abs_diff)
+  select(id, fire_name, plot_location,
+         jt_pre_fire_maya, jt_post_fire_maya, mortality_percentage_maya,
+         jt_pre_fire_lucia, jt_post_fire_lucia, mortality_percentage_lucia,
+         mortality_abs_diff)
+
+
+sites_to_inspect_inside <- sites_to_inspect %>%
+  filter(plot_location == "Inside")
 
 unsuitable_sites <- agreement_data %>%
   filter(coalesce(plot_unsuitable_maya == "unsuitable", FALSE) |
@@ -402,7 +408,14 @@ unsuitable_sites <- agreement_data %>%
          plot_unsuitable_lucia)
 
 sites_to_inspect
+sites_to_inspect_inside
 unsuitable_sites
+
+
+write_csv(sites_to_inspect, here("output", "sites_to_inspect.csv"))
+write_csv(sites_to_inspect_inside, here("output", "sites_to_inspect_inside.csv"))
+write_csv(unsuitable_sites, here("output", "unsuitable_sites.csv"))
+
 
 # Vegetation cover agreement summaries ----
 

@@ -1,0 +1,19 @@
+id,fire_name,plot_location,plot_unsuitable_maya,plot_unsuitable_lucia
+boulevard_2023_inside_01,BOULEVARD,Inside,NA,unsuitable
+cal_2024_inside_01,CAL,Inside,NA,unsuitable
+cal_2024_inside_02,CAL,Inside,NA,unsuitable
+dome_2020_inside_06,DOME,Inside,unsuitable,NA
+dome_2020_inside_14,DOME,Inside,unsuitable,unsuitable
+elk_trail_2022_outside_04,ELK TRAIL,Outside,NA,unsuitable
+geology_2023_inside_03,GEOLOGY,Inside,unsuitable,unsuitable
+geology_2023_inside_04,GEOLOGY,Inside,unsuitable,unsuitable
+geology_2023_inside_07,GEOLOGY,Inside,unsuitable,unsuitable
+geology_2023_outside_03,GEOLOGY,Outside,unsuitable,unsuitable
+geology_2023_outside_04,GEOLOGY,Outside,unsuitable,NA
+ivanpah_2020_inside_02,IVANPAH,Inside,unsuitable,NA
+ivanpah_2020_inside_14,IVANPAH,Inside,unsuitable,NA
+johnson_2024_inside_03,JOHNSON,Inside,NA,unsuitable
+johnson_2024_outside_03,JOHNSON,Outside,NA,unsuitable
+mojave_2021_outside_04,MOJAVE,Outside,unsuitable,NA
+nadeau_2020_inside_01,NADEAU,Inside,NA,unsuitable
+nadeau_2020_outside_01,NADEAU,Outside,NA,unsuitable
