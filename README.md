@@ -63,7 +63,7 @@ Field data (Joshua tree counts, shrub cover) is collected visually from satellit
 |---------|--------|------|
 | CAL FIRE fire perimeters | [CAL FIRE FRAP](https://www.fire.ca.gov/what-we-do/fire-resource-assessment-program/fire-perimeters) | `data/fire_boundaries/fire25_1.gdb` |
 | MTBS fire perimeters | [MTBS](https://www.mtbs.gov/direct-download) | `data/fire_boundaries/mtbs_perimeter_data/` |
-| Nevada Wildland Fire History | [Nevada SHPO](https://www.nevadaculture.org/) | `data/fire_boundaries/Nevada_Wildland_Fire_History_*/` |
+| Nevada Wildland Fire History | BLM National Fire Perimeters (FPER), Bureau of Land Management | `data/fire_boundaries/Nevada_Wildland_Fire_History_*/` |
 | Joshua Tree NP boundary | NPS | `data/fire_boundaries/JoshuaTree/` |
 | Mojave NP boundary | NPS | `data/fire_boundaries/Mojave/` |
 | LANDFIRE EVT 2025 | [LANDFIRE](https://landfire.gov/) | `data/vegetation_nps/LF2025_EVT_CONUS/` |
