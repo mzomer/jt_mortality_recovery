@@ -751,6 +751,23 @@ data_checks <- function(reads) {
     arrange(check, observer, id)
 }
 
+# Per plot, how many observers marked low confidence in each imagery period.
+# One observer's low confidence is often just personal uncertainty; two or
+# more is a stronger signal that the imagery itself (not the observer) is
+# the problem, e.g. a candidate for re-acquiring.
+low_confidence_by_plot <- function(reads) {
+  reads %>%
+    filter(completed, !unsuitable) %>%
+    group_by(id, fire_name, plot_location) %>%
+    summarise(
+      pre_low = sum(pre_confidence %in% "low"),
+      post_low = sum(post_confidence %in% "low"),
+      pre_low_observers = paste(sort(observer[pre_confidence %in% "low"]), collapse = ", "),
+      post_low_observers = paste(sort(observer[post_confidence %in% "low"]), collapse = ", "),
+      .groups = "drop"
+    )
+}
+
 # "How it works" page ----
 about_template <- '
 ### What the app does
@@ -981,6 +998,25 @@ ui <- page_navbar(
     "Data checks",
     card(card_header("Entries worth a second look, per observer"),
          DTOutput("checks_table", fill = FALSE))
+  ),
+
+  nav_panel(
+    "Low confidence imagery",
+    card(
+      card_header("Plots likely needing new imagery"),
+      helpText("Grouped where at least two observers independently marked low",
+               "confidence in the same imagery period — a stronger signal",
+               "than one observer's personal uncertainty."),
+      uiOutput("low_confidence_summary"),
+      plotOutput("low_confidence_plot", height = "380px")
+    ),
+    layout_columns(
+      col_widths = c(6, 6),
+      card(card_header("Low confidence: pre-fire count"),
+           DTOutput("low_confidence_pre_table", fill = FALSE)),
+      card(card_header("Low confidence: post-fire count"),
+           DTOutput("low_confidence_post_table", fill = FALSE))
+    )
   ),
 
   nav_panel(
@@ -1459,7 +1495,70 @@ server <- function(input, output, session) {
              `Veg pre` = pre_veg, `Veg post` = post_veg, Comments = comments) %>%
       mutate(Check = factor(Check), Observer = factor(Observer)) %>%
       datatable(fillContainer = FALSE, rownames = FALSE, filter = "top",
-                options = list(pageLength = 20, scrollX = TRUE))
+                options = list(pageLength = 20, scrollX = TRUE,
+                               columnDefs = list(list(width = "260px", targets = 0))))
+  })
+
+  low_conf <- reactive(low_confidence_by_plot(reads()))
+
+  output$low_confidence_summary <- renderUI({
+    d <- low_conf()
+    n_pre <- sum(d$pre_low >= 2)
+    n_post <- sum(d$post_low >= 2)
+    if (n_pre == 0 && n_post == 0) return(NULL)
+    n_fires <- n_distinct(d$fire_name[d$pre_low >= 2 | d$post_low >= 2])
+    div(class = "status-note",
+        sprintf(paste("%d plot%s flagged for the pre-fire count and %d plot%s",
+                      "for the post-fire count, across %d fire%s."),
+                n_pre, if (n_pre == 1) "" else "s",
+                n_post, if (n_post == 1) "" else "s",
+                n_fires, if (n_fires == 1) "" else "s"))
+  })
+
+  output$low_confidence_plot <- renderPlot({
+    d <- low_conf()
+    long <- bind_rows(
+      d %>% filter(pre_low >= 2) %>% transmute(fire_name, type = "Pre-fire count"),
+      d %>% filter(post_low >= 2) %>% transmute(fire_name, type = "Post-fire count")
+    )
+    validate(need(nrow(long) > 0, "No plots yet where two or more observers marked low confidence."))
+    counts <- long %>% count(fire_name, type, name = "n")
+    pal <- c("Pre-fire count" = "#D55E00", "Post-fire count" = "#0072B2")
+    ggplot(counts, aes(reorder(str_to_title(fire_name), -n, sum), n, fill = type)) +
+      geom_col(position = position_dodge(width = 0.75), width = 0.65) +
+      geom_text(aes(label = n), position = position_dodge(width = 0.75),
+                vjust = -0.4, size = 4, show.legend = FALSE) +
+      scale_fill_manual(values = pal) +
+      scale_y_continuous(expand = expansion(mult = c(0, 0.12))) +
+      labs(x = NULL, y = "Plots flagged", fill = NULL) +
+      theme_minimal(base_size = 14) +
+      theme(legend.position = "top", panel.grid.major.x = element_blank(),
+            panel.grid.minor = element_blank(),
+            axis.text.x = element_text(angle = 35, hjust = 1))
+  })
+
+  low_confidence_dt <- function(d, empty_msg) {
+    validate(need(nrow(d) > 0, empty_msg))
+    datatable(d, fillContainer = FALSE, rownames = FALSE,
+              options = list(pageLength = 20, scrollX = TRUE))
+  }
+
+  output$low_confidence_pre_table <- renderDT({
+    d <- low_conf() %>%
+      filter(pre_low >= 2) %>%
+      arrange(desc(pre_low), fire_name, id) %>%
+      transmute(Plot = id, Fire = fire_name, Location = plot_location,
+                `Observers (low)` = pre_low, Who = pre_low_observers)
+    low_confidence_dt(d, "No plots yet where two or more observers marked low confidence in the pre-fire count.")
+  })
+
+  output$low_confidence_post_table <- renderDT({
+    d <- low_conf() %>%
+      filter(post_low >= 2) %>%
+      arrange(desc(post_low), fire_name, id) %>%
+      transmute(Plot = id, Fire = fire_name, Location = plot_location,
+                `Observers (low)` = post_low, Who = post_low_observers)
+    low_confidence_dt(d, "No plots yet where two or more observers marked low confidence in the post-fire count.")
   })
 
   output$tolerance_example <- renderUI({
