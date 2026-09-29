@@ -281,12 +281,14 @@ within_tol <- function(a, b, abs_tol, rel_tol) {
 
 # TRUE if every count is within tolerance of the group's own mean (so every
 # pair is within tolerance of each other too), FALSE if not, NA if fewer than
-# two counts were entered. One shared tolerance for the group, rather than a
-# separate one per pair, so the threshold doesn't depend on which two values
-# happen to be compared.
-all_agree <- function(x, abs_tol, rel_tol) {
+# n_required counts were entered (so one observer skipping this field, e.g.
+# because they marked the plot unsuitable, counts as missing rather than
+# being silently judged on whoever's left). One shared tolerance for the
+# group, rather than a separate one per pair, so the threshold doesn't
+# depend on which two values happen to be compared.
+all_agree <- function(x, abs_tol, rel_tol, n_required) {
   x <- x[!is.na(x)]
-  if (length(x) < 2) return(NA)
+  if (length(x) < n_required) return(NA)
   tol <- max(abs_tol, rel_tol / 100 * mean(x))
   max(x) - min(x) <= tol
 }
@@ -355,14 +357,14 @@ plot_status <- function(reads, abs_tol, rel_tol, n_required, reviews) {
       n_counts = n(),
       observers = paste(sort(observer), collapse = ", "),
       n_unsuitable = sum(unsuitable),
-      pre_ok = all_agree(jt_pre_fire[!unsuitable], abs_tol, rel_tol),
-      post_ok = all_agree(jt_post_fire[!unsuitable], abs_tol, rel_tol),
+      pre_ok = all_agree(jt_pre_fire, abs_tol, rel_tol, n_required),
+      post_ok = all_agree(jt_post_fire, abs_tol, rel_tol, n_required),
       vpre_n = sum(!is.na(pre_veg[!unsuitable])),
       vpost_n = sum(!is.na(post_veg[!unsuitable])),
       maj_pre_veg = majority_class(pre_veg[!unsuitable]),
       maj_post_veg = majority_class(post_veg[!unsuitable]),
-      med_pre = median_count(jt_pre_fire[!unsuitable]),
-      med_post = median_count(jt_post_fire[!unsuitable]),
+      med_pre = median_count(jt_pre_fire),
+      med_post = median_count(jt_post_fire),
       .groups = "drop"
     ) %>%
     mutate(
