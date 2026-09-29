@@ -691,6 +691,42 @@ plot_detail_html <- function(id, flags, st) {
   )
 }
 
+# A datatable where clicking any row expands a child row underneath it,
+# showing each observer's counts and comments for that plot (via
+# plot_detail_html), built into a hidden ".detail" column so no extra round
+# trip to the server is needed on click. `d` must have a "Plot" column
+# holding each row's plot id. `raw_html_cols` names any other columns that
+# already contain HTML and shouldn't be escaped.
+expandable_datatable <- function(d, flags, st, filter = "none",
+                                  raw_html_cols = character(0), dt_options = list()) {
+  d$.detail <- vapply(d$Plot, plot_detail_html, character(1), flags = flags, st = st)
+  detail_col <- match(".detail", names(d))
+  no_escape <- unique(c(match(raw_html_cols, names(d)), detail_col))
+  dt_options$columnDefs <- c(dt_options$columnDefs,
+                             list(list(visible = FALSE, targets = detail_col - 1)))
+  datatable(
+    d, fillContainer = FALSE, rownames = FALSE, filter = filter,
+    escape = -no_escape, selection = "none",
+    callback = JS(sprintf(
+      "table.on('click', 'tbody tr', function() {
+         var tr = $(this);
+         var row = table.row(tr);
+         if (row.child.isShown()) {
+           row.child.hide();
+           tr.removeClass('shown');
+         } else {
+           table.rows('.shown').every(function() {
+             this.child.hide();
+             $(this.node()).removeClass('shown');
+           });
+           row.child(row.data()[%d]).show();
+           tr.addClass('shown');
+         }
+       });", detail_col - 1)),
+    options = dt_options
+  )
+}
+
 # Pre-filled review sheet for unresolved conflicts
 review_template <- function(flags, st) {
   ids <- st$id[st$status == "Conflict"]
@@ -1010,12 +1046,18 @@ ui <- page_navbar(
       uiOutput("low_confidence_summary"),
       plotOutput("low_confidence_plot", height = "380px")
     ),
-    layout_columns(
-      col_widths = c(6, 6),
-      card(card_header("Low confidence: pre-fire count"),
-           DTOutput("low_confidence_pre_table", fill = FALSE)),
-      card(card_header("Low confidence: post-fire count"),
-           DTOutput("low_confidence_post_table", fill = FALSE))
+    accordion(
+      open = FALSE,
+      accordion_panel(
+        "Low confidence: pre-fire count",
+        helpText("Click a row to see each observer's counts and comments."),
+        DTOutput("low_confidence_pre_table", fill = FALSE)
+      ),
+      accordion_panel(
+        "Low confidence: post-fire count",
+        helpText("Click a row to see each observer's counts and comments."),
+        DTOutput("low_confidence_post_table", fill = FALSE)
+      )
     )
   ),
 
@@ -1294,37 +1336,15 @@ server <- function(input, output, session) {
   })
 
   # Plot table: clicking a row expands a child row underneath it, showing
-  # each observer's counts for that plot (built server-side into a hidden
-  # ".detail" column so no extra round trip is needed on click).
+  # each observer's counts for that plot.
   output$plot_table <- renderDT({
     d <- plot_table_data()
-    fl <- flags(); st <- status()
-    d$.detail <- vapply(d$Plot, plot_detail_html, character(1), flags = fl, st = st)
     comments_col <- match("Comments", names(d))
-    detail_col <- match(".detail", names(d))
-    datatable(
-      d, fillContainer = FALSE, rownames = FALSE, filter = "top",
-      escape = c(-comments_col, -detail_col), selection = "none",
-      callback = JS(sprintf(
-        "table.on('click', 'tbody tr', function() {
-           var tr = $(this);
-           var row = table.row(tr);
-           if (row.child.isShown()) {
-             row.child.hide();
-             tr.removeClass('shown');
-           } else {
-             table.rows('.shown').every(function() {
-               this.child.hide();
-               $(this.node()).removeClass('shown');
-             });
-             row.child(row.data()[%d]).show();
-             tr.addClass('shown');
-           }
-         });", detail_col - 1)),
-      options = list(pageLength = 15, scrollX = TRUE, scrollY = "500px",
-                     scrollCollapse = TRUE, autoWidth = TRUE,
-                     columnDefs = list(list(width = "320px", targets = comments_col - 1),
-                                       list(visible = FALSE, targets = detail_col - 1)))
+    expandable_datatable(
+      d, flags(), status(), filter = "top", raw_html_cols = "Comments",
+      dt_options = list(pageLength = 15, scrollX = TRUE, scrollY = "500px",
+                        scrollCollapse = TRUE, autoWidth = TRUE,
+                        columnDefs = list(list(width = "320px", targets = comments_col - 1)))
     ) %>%
       formatStyle("Status", backgroundColor = styleEqual(status_levels,
                                                          unname(status_colors)),
@@ -1537,19 +1557,15 @@ server <- function(input, output, session) {
             axis.text.x = element_text(angle = 35, hjust = 1))
   })
 
-  low_confidence_dt <- function(d, empty_msg) {
-    validate(need(nrow(d) > 0, empty_msg))
-    datatable(d, fillContainer = FALSE, rownames = FALSE,
-              options = list(pageLength = 20, scrollX = TRUE))
-  }
-
   output$low_confidence_pre_table <- renderDT({
     d <- low_conf() %>%
       filter(pre_low >= 2) %>%
       arrange(desc(pre_low), fire_name, id) %>%
       transmute(Plot = id, Fire = fire_name, Location = plot_location,
                 `Observers (low)` = pre_low, Who = pre_low_observers)
-    low_confidence_dt(d, "No plots yet where two or more observers marked low confidence in the pre-fire count.")
+    validate(need(nrow(d) > 0, "No plots yet where two or more observers marked low confidence in the pre-fire count."))
+    expandable_datatable(d, flags(), status(),
+                        dt_options = list(pageLength = 20, scrollX = TRUE))
   })
 
   output$low_confidence_post_table <- renderDT({
@@ -1558,7 +1574,9 @@ server <- function(input, output, session) {
       arrange(desc(post_low), fire_name, id) %>%
       transmute(Plot = id, Fire = fire_name, Location = plot_location,
                 `Observers (low)` = post_low, Who = post_low_observers)
-    low_confidence_dt(d, "No plots yet where two or more observers marked low confidence in the post-fire count.")
+    validate(need(nrow(d) > 0, "No plots yet where two or more observers marked low confidence in the post-fire count."))
+    expandable_datatable(d, flags(), status(),
+                        dt_options = list(pageLength = 20, scrollX = TRUE))
   })
 
   output$tolerance_example <- renderUI({
