@@ -145,9 +145,9 @@ status_levels <- c("Not started", "In progress", "Conflict", "Excluded", "Accept
 status_help <- c(
   "Not started" = "Opened in Collect Earth, but nobody has saved counts yet",
   "In progress" = "Counted by some, but not yet all, observers",
-  "Conflict"    = "No two observers agree; needs joint review",
+  "Conflict"    = "Not all observers agree; needs joint review",
   "Excluded"    = "Most observers marked the plot unsuitable",
-  "Accepted"    = "At least two observers agree on every field"
+  "Accepted"    = "All observers agree on every field"
 )
 status_colors <- c(
   "Not started" = "#B8B3A2",
@@ -279,13 +279,16 @@ within_tol <- function(a, b, abs_tol, rel_tol) {
   abs(a - b) <= pmax(abs_tol, rel_tol / 100 * (a + b) / 2)
 }
 
-# TRUE if at least two counts agree, FALSE if none do, NA if fewer than two
-# counts were entered
-has_agreeing_pair <- function(x, abs_tol, rel_tol) {
+# TRUE if every count is within tolerance of the group's own mean (so every
+# pair is within tolerance of each other too), FALSE if not, NA if fewer than
+# two counts were entered. One shared tolerance for the group, rather than a
+# separate one per pair, so the threshold doesn't depend on which two values
+# happen to be compared.
+all_agree <- function(x, abs_tol, rel_tol) {
   x <- x[!is.na(x)]
   if (length(x) < 2) return(NA)
-  pairs <- combn(x, 2)
-  any(within_tol(pairs[1, ], pairs[2, ], abs_tol, rel_tol))
+  tol <- max(abs_tol, rel_tol / 100 * mean(x))
+  max(x) - min(x) <= tol
 }
 
 # The class chosen by a majority (at least two observers, no tie)
@@ -352,8 +355,8 @@ plot_status <- function(reads, abs_tol, rel_tol, n_required, reviews) {
       n_counts = n(),
       observers = paste(sort(observer), collapse = ", "),
       n_unsuitable = sum(unsuitable),
-      pre_ok = has_agreeing_pair(jt_pre_fire[!unsuitable], abs_tol, rel_tol),
-      post_ok = has_agreeing_pair(jt_post_fire[!unsuitable], abs_tol, rel_tol),
+      pre_ok = all_agree(jt_pre_fire[!unsuitable], abs_tol, rel_tol),
+      post_ok = all_agree(jt_post_fire[!unsuitable], abs_tol, rel_tol),
       vpre_n = sum(!is.na(pre_veg[!unsuitable])),
       vpost_n = sum(!is.na(post_veg[!unsuitable])),
       maj_pre_veg = majority_class(pre_veg[!unsuitable]),
@@ -435,9 +438,10 @@ plot_status <- function(reads, abs_tol, rel_tol, n_required, reviews) {
 }
 
 # Per observer, per plot: who differs from the consensus ----
-# An observer is an outlier on a count when two others agree (so the plot
-# has a trustworthy median) and their own count is outside the tolerance
-# of that median.
+# An observer is an outlier on a count when their own count is outside the
+# tolerance of the plot's median. On an accepted plot this can never be
+# TRUE (unanimous agreement already rules it out); it's meaningful for
+# plots in conflict, to see who's furthest from the rest.
 observer_flags <- function(reads, st, abs_tol, rel_tol) {
   reads %>%
     filter(completed) %>%
@@ -446,9 +450,9 @@ observer_flags <- function(reads, st, abs_tol, rel_tol) {
                       f_missing, f_pre, f_post, f_vmissing, f_vpre, f_vpost),
                by = "id") %>%
     mutate(
-      pre_out = !unsuitable & pre_ok %in% TRUE & !is.na(jt_pre_fire) &
+      pre_out = !unsuitable & !is.na(jt_pre_fire) &
         !within_tol(jt_pre_fire, med_pre, abs_tol, rel_tol),
-      post_out = !unsuitable & post_ok %in% TRUE & !is.na(jt_post_fire) &
+      post_out = !unsuitable & !is.na(jt_post_fire) &
         !within_tol(jt_post_fire, med_post, abs_tol, rel_tol),
       outlier = pre_out | post_out,
       vpre_same = if_else(!unsuitable & !is.na(pre_veg) & !is.na(maj_pre_veg),
@@ -577,8 +581,6 @@ conflict_long <- function(flags, st, ids) {
     transmute(id, fire_name, meta = paste0(
       esc(plot_location),
       if_else(nzchar(issues), paste0(" \u00b7 ", esc(issues)), ""),
-      if_else(coalesce(outlier_observers, "") != "",
-              paste0(" \u00b7 outlier: ", esc(outlier_observers)), ""),
       if_else(resolved, paste0(" \u00b7 <b>resolved</b>",
                                if_else(is.na(rv_note), "", paste0(": ", esc(rv_note)))), "")
     ))
@@ -653,7 +655,6 @@ plot_summary_html <- function(id, st) {
     as.character(s$status)
   }
   extra <- c(
-    if (!is.na(s$outlier_observers)) paste("Outlier:", s$outlier_observers),
     if (s$reviewed) paste0("Reviewed", if (is.na(s$rv_note)) "" else
       paste0(": ", s$rv_note))
   )
@@ -769,15 +770,16 @@ most recent saved version is used.
 |---|---|
 | **Not started** | Opened in Collect Earth, but no counts saved yet |
 | **In progress** | Counted by fewer than {N} observers so far |
-| **Conflict** | No two observers agree on at least one field (below); needs joint review |
+| **Conflict** | Not all observers agree on at least one field (below); needs joint review |
 | **Excluded** | Most observers marked the plot unsuitable |
-| **Accepted** | At least two observers agree on every field |
+| **Accepted** | All observers agree on every field |
 
 ### When observers agree
 
-- **Counts** (pre- and post-fire): two counts agree if they differ by no more
-  than **{ABS} tree(s) or {REL}% of their mean, whichever is larger**. A plot
-  is accepted when at least two observers agree. {EXAMPLE}
+- **Counts** (pre- and post-fire): every observer\'s count must agree with
+  every other observer\'s, differing by no more than **{ABS} tree(s) or
+  {REL}% of their mean, whichever is larger**. A plot is accepted only when
+  all observers agree. {EXAMPLE}
 - **Vegetation cover** (pre and post): accepted when at least two observers
   chose the same class.
 - **Missing values:** a count or cover class needs at least two observers
@@ -785,9 +787,11 @@ most recent saved version is used.
 - **Unsuitable:** if one observer marked a plot unsuitable and the others
   counted it, their counts are used.
 
-**Outlier:** on an accepted plot, an observer whose count is outside the
-tolerance of the median. The plot is still accepted, because the median is
-set by the observers who agree; the flag is there so you can see who was off.
+**Outlier** (Agreement tab): among plots needing joint review, an observer
+whose count is outside the tolerance of the median of the other counts. It
+doesn\'t change whether the plot needs review — that\'s already decided by the
+counts not all agreeing — it\'s there to show which observers tend to differ
+most from the rest.
 
 ### Consensus values
 
@@ -901,11 +905,12 @@ ui <- page_navbar(
     tags$strong("Agreement rule"),
     numericInput("n_required", "Observers per plot", value = 3,
                  min = 2, step = 1),
-    numericInput("abs_tol", "Tolerance: trees", value = 1, min = 0, step = 1),
-    numericInput("rel_tol", "Tolerance: % of mean", value = 10, min = 0, step = 5),
-    helpText("Two observers' counts agree if they differ by no more than",
-             "the tree tolerance or the % of their average, whichever is",
-             "larger. A plot is accepted when at least two observers agree."),
+    numericInput("abs_tol", "Tolerance: trees", value = 2, min = 0, step = 1),
+    numericInput("rel_tol", "Tolerance: % of mean", value = 20, min = 0, step = 5),
+    helpText("Two counts agree if they differ by no more than the tree",
+             "tolerance or the % of their average, whichever is larger.",
+             "A plot is accepted only when every observer's count agrees",
+             "with every other observer's."),
     uiOutput("tolerance_example"),
     tags$hr(),
     selectInput("fire_filter", "Fires", choices = NULL, multiple = TRUE),
@@ -940,8 +945,7 @@ ui <- page_navbar(
         col_widths = c(4, 4),
         selectInput("conflict_view", "Show",
                     choices = c("Unresolved conflicts",
-                                "All conflicts (incl. resolved)",
-                                "Accepted plots with an outlier")),
+                                "All conflicts (incl. resolved)")),
         selectInput("issue_filter", "Issue", choices = c("All", unname(issue_labels)))
       ),
       helpText("One row per observer. Shaded cells are the values in question."),
@@ -956,9 +960,10 @@ ui <- page_navbar(
          uiOutput("reliability_text")),
     card(card_header("Observers compared with the consensus"),
          DTOutput("observer_table", fill = FALSE),
-         helpText("Outlier: on an accepted plot, the observer's count was",
-                  "outside the tolerance of the median. Mean diff from median:",
-                  "positive means the observer tends to count more trees.")),
+         helpText("Outlier: among plots needing joint review, the observer's",
+                  "count was outside the tolerance of the median. Mean diff",
+                  "from median: positive means the observer tends to count",
+                  "more trees.")),
     card(card_header("By fire and plot location"), DTOutput("fire_table", fill = FALSE))
   ),
 
@@ -1143,8 +1148,8 @@ server <- function(input, output, session) {
   })
 
   settings <- reactive({
-    list(abs_tol = max(0, input$abs_tol %||% 1, na.rm = TRUE),
-         rel_tol = max(0, input$rel_tol %||% 10, na.rm = TRUE),
+    list(abs_tol = max(0, input$abs_tol %||% 2, na.rm = TRUE),
+         rel_tol = max(0, input$rel_tol %||% 20, na.rm = TRUE),
          n_required = max(2, input$n_required %||% 3, na.rm = TRUE))
   })
 
@@ -1158,14 +1163,10 @@ server <- function(input, output, session) {
     observer_flags(reads(), status_base(), s$abs_tol, s$rel_tol)
   })
 
-  status <- reactive({
-    out_names <- flags() %>%
-      filter(outlier, rule_status == "Accepted") %>%
-      group_by(id) %>%
-      summarise(outlier_observers = paste(sort(observer), collapse = ", "),
-                .groups = "drop")
-    status_base() %>% left_join(out_names, by = "id")
-  })
+  # Accepted plots now require every observer to agree, so an accepted plot
+  # can never contain an outlier by construction — status is just the base
+  # plot status, with no separate outlier join needed.
+  status <- status_base
 
   # Overview ----
   selected_status <- reactiveVal(NULL)
@@ -1208,13 +1209,11 @@ server <- function(input, output, session) {
     n_full <- nrow(full)
     n_conf_before <- sum(full$rule_status == "Conflict")
     n_resolved <- sum(full$resolved)
-    n_outlier <- sum(st$status == "Accepted" & !is.na(st$outlier_observers))
     txt <- if (n_full == 0) "No plots have been counted by all observers yet." else
       sprintf(paste("%d plots counted by all observers: %d (%.0f%%) were in",
-                    "conflict before review, %d of those resolved.",
-                    "%d accepted plots have an outlier."),
+                    "conflict before review, %d of those resolved."),
               n_full, n_conf_before, 100 * n_conf_before / n_full,
-              n_resolved, n_outlier)
+              n_resolved)
     div(class = "status-note", txt,
         " Click a category to filter the table; click again to clear.")
   })
@@ -1248,12 +1247,11 @@ server <- function(input, output, session) {
                 Counted = paste(n_counts, "of", settings()$n_required),
                 Observers = observers,
                 Issues = issues,
-                Outlier = coalesce(outlier_observers, ""),
                 Reviewed = if_else(reviewed, "yes", ""),
                 `Pre (consensus)` = cons_pre, `Post (consensus)` = cons_post,
                 Comments = coalesce(Comments, ""))
     if (!is.null(showing) && showing %in% c("Not started", "In progress", "Excluded")) {
-      d <- select(d, -Outlier, -`Pre (consensus)`, -`Post (consensus)`)
+      d <- select(d, -`Pre (consensus)`, -`Post (consensus)`)
     }
     if (!is.null(showing) && showing == "Excluded") d <- select(d, -Issues)
     d
@@ -1339,9 +1337,7 @@ server <- function(input, output, session) {
     st <- status()
     st <- switch(input$conflict_view,
       "Unresolved conflicts" = filter(st, status == "Conflict"),
-      "All conflicts (incl. resolved)" = filter(st, rule_status == "Conflict"),
-      "Accepted plots with an outlier" = filter(st, status == "Accepted",
-                                                !is.na(outlier_observers)))
+      "All conflicts (incl. resolved)" = filter(st, rule_status == "Conflict"))
     if (input$issue_filter != "All") {
       st <- filter(st, str_detect(issues, fixed(input$issue_filter)))
     }
@@ -1360,8 +1356,8 @@ server <- function(input, output, session) {
     content = function(file) {
       flags() %>%
         filter(id %in% conflict_ids()) %>%
-        left_join(select(status(), id, issues, outlier_observers), by = "id") %>%
-        select(id, fire_name, plot_location, issues, outlier_observers, observer,
+        left_join(select(status(), id, issues), by = "id") %>%
+        select(id, fire_name, plot_location, issues, observer,
                jt_pre_fire, pre_confidence, jt_post_fire, post_confidence,
                pre_veg, post_veg, unsuitable, comments, location_x, location_y) %>%
         arrange(fire_name, id, observer) %>%
@@ -1489,7 +1485,6 @@ server <- function(input, output, session) {
         arrange(fire_name, id) %>%
         transmute(plot_id = id, fire = fire_name, fire_year, location = plot_location,
                   status, n_counts, resolved_by_review = resolved,
-                  outlier = coalesce(outlier_observers, ""),
                   pre_fire = cons_pre, post_fire = cons_post,
                   pre_veg = cons_pre_veg, post_veg = cons_post_veg,
                   mortality_pct = round(cons_mortality, 1),
