@@ -1538,6 +1538,7 @@ ui <- page_navbar(
         "Plots needing joint review",
         downloadButton("dl_review_template", "Download review template", class = "btn-sm")
       ),
+      uiOutput("ledger_warnings"),
       layout_columns(
         col_widths = c(4),
         # Only disagreement issues ever reach Conflict -- a recheck issue
@@ -1851,6 +1852,60 @@ server <- function(input, output, session) {
   # instructions) and committed to LOCAL_REVIEW_PATH in git. This view just
   # lists what's still unresolved, with the same click-to-expand comparison
   # used on Overview.
+
+  # A CSV has no cell-locking -- someone can type over an already-resolved
+  # field by mistake and plot_status() will silently ignore it (the field
+  # stays frozen at its automatic value either way). This surfaces that
+  # mistake instead of letting it vanish unnoticed: any value sitting in a
+  # field that row's own conflict_fields does NOT list as disputed, but that
+  # disagrees with the current automatic value for that field, is flagged.
+  ledger_warnings <- reactive({
+    ledger <- tryCatch(read_review_ledger(LOCAL_REVIEW_PATH),
+                       error = function(e) empty_review_file_data())
+    if (nrow(ledger) == 0) return(tibble())
+
+    live <- status() %>%
+      transmute(plot_id = id, pre_resolved, post_resolved, maj_pre_veg,
+               maj_post_veg)
+    joined <- ledger %>% inner_join(live, by = "plot_id")
+    if (nrow(joined) == 0) return(tibble())
+
+    mismatch_rows <- function(field, ledger_val, auto_val) {
+      undisputed <- !has_field(joined$conflict_fields, field)
+      mismatch <- undisputed & !is.na(ledger_val) & !is.na(auto_val) &
+        ledger_val != auto_val
+      tibble(plot_id = joined$plot_id[mismatch], field = field,
+            ledger_value = format(ledger_val)[mismatch],
+            auto_value = format(auto_val)[mismatch])
+    }
+
+    bind_rows(
+      mismatch_rows("pre_fire", joined$pre_fire, joined$pre_resolved),
+      mismatch_rows("post_fire", joined$post_fire, joined$post_resolved),
+      mismatch_rows("pre_veg", joined$pre_veg, joined$maj_pre_veg),
+      mismatch_rows("post_veg", joined$post_veg, joined$maj_post_veg)
+    )
+  })
+
+  output$ledger_warnings <- renderUI({
+    w <- ledger_warnings()
+    if (nrow(w) == 0) return(NULL)
+    div(class = "alert alert-warning",
+        tags$strong(sprintf(
+          "%d value%s in joint_reviews.csv %s being ignored:",
+          nrow(w), if (nrow(w) == 1) "" else "s",
+          if (nrow(w) == 1) "is" else "are"
+        )),
+        tags$ul(
+          pmap(w, function(plot_id, field, ledger_value, auto_value) {
+            tags$li(sprintf(
+              "%s: %s = %s in the file, but already resolved to %s -- ignored",
+              plot_id, field, ledger_value, auto_value
+            ))
+          })
+        ))
+  })
+
   conflict_ids <- reactive({
     st <- filter(status(), status == "Conflict")
     if (input$issue_filter != "All") {
