@@ -1,0 +1,14 @@
+generated_at: 2026-10-05 19:16:35 PDT
+abs_tol: 2
+rel_tol: 20
+n_required: 3
+newest_only: TRUE
+primary_observers: anitachamraj, riannasamson, sidney
+n_plots: 43
+n_accepted: 7
+n_accepted_via_4th_review: 0
+n_accepted_via_joint_review: 0
+n_needs_4th_review: 25
+n_conflict_unresolved: 0
+n_incomplete: 9
+n_excluded: 2

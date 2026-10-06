@@ -1,0 +1,44 @@
+"plot_id","fire","fire_year","location","n_counts","n_primary","n_reviewers","rule_status","issues","primary_pre_fire","primary_post_fire","pre_fire_disputed_at_primary","post_fire_disputed_at_primary","pre_veg_disputed_at_primary","post_veg_disputed_at_primary","fourth_reviewer_used_pre","fourth_reviewer_used_post","fourth_reviewer_used_vpre","fourth_reviewer_used_vpost","auto_pre_fire","auto_post_fire","auto_pre_veg","auto_post_veg","pre_fire_disputed","post_fire_disputed","pre_veg_disputed","post_veg_disputed","suitability_disputed"
+"boulevard_2023_inside_01","BOULEVARD",2023,"Inside",3,3,0,"Accepted","",5,2,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,5,2,"medium","low",FALSE,FALSE,FALSE,FALSE,FALSE
+"boulevard_2023_outside_01","BOULEVARD",2023,"Outside",3,3,0,"Needs 4th review","Pre-fire count; Post-fire count",,,TRUE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,,,"medium","medium",TRUE,TRUE,FALSE,FALSE,FALSE
+"cahuila_2017_inside_01","CAHUILA",2017,"Inside",3,3,0,"Accepted","",5,3,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,5,3,"low","low",FALSE,FALSE,FALSE,FALSE,FALSE
+"cahuila_2017_inside_05","CAHUILA",2017,"Inside",3,3,0,"Accepted","",2,1,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,2,1,"low","low",FALSE,FALSE,FALSE,FALSE,FALSE
+"cahuila_2017_outside_01","CAHUILA",2017,"Outside",3,3,0,"Incomplete","Suitability minority split",,,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,,,,,FALSE,FALSE,FALSE,FALSE,TRUE
+"cal_2024_inside_01","CAL",2024,"Inside",3,3,0,"Accepted","",2,1,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,2,1,"high","low",FALSE,FALSE,FALSE,FALSE,FALSE
+"coles_flat_2020_inside_01","COLES FLAT",2020,"Inside",3,3,0,"Needs 4th review","Pre-fire count; Post-fire count",,,TRUE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,,,"medium","low",TRUE,TRUE,FALSE,FALSE,FALSE
+"coles_flat_2020_inside_06","COLES FLAT",2020,"Inside",3,3,0,"Needs 4th review","Post-fire count",4,,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,4,,"medium","low",FALSE,TRUE,FALSE,FALSE,FALSE
+"coles_flat_2020_outside_01","COLES FLAT",2020,"Outside",3,3,0,"Incomplete","Suitability minority split",,,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,,,,,FALSE,FALSE,FALSE,FALSE,TRUE
+"dome_2020_inside_01","DOME",2020,"Inside",3,3,0,"Needs 4th review","Pre-fire count; Post-fire count",,,TRUE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,,,"medium","low",TRUE,TRUE,FALSE,FALSE,FALSE
+"dome_2020_inside_06","DOME",2020,"Inside",3,3,0,"Excluded","",,,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,,,,,FALSE,FALSE,FALSE,FALSE,FALSE
+"dome_2020_outside_01","DOME",2020,"Outside",3,3,0,"Needs 4th review","Pre-fire count; Post-fire count",,,TRUE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,,,"medium","medium",TRUE,TRUE,FALSE,FALSE,FALSE
+"elk_trail_2022_inside_01","ELK TRAIL",2022,"Inside",3,3,0,"Needs 4th review","Pre-fire count; Post-fire count",,,TRUE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,,,"high","low",TRUE,TRUE,FALSE,FALSE,FALSE
+"elk_trail_2022_inside_05","ELK TRAIL",2022,"Inside",3,3,0,"Needs 4th review","Pre-fire count; Post-fire count",,,TRUE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,,,"high","low",TRUE,TRUE,FALSE,FALSE,FALSE
+"elk_trail_2022_outside_01","ELK TRAIL",2022,"Outside",3,3,0,"Accepted","",3,3,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,3,3,"high","high",FALSE,FALSE,FALSE,FALSE,FALSE
+"geology_2023_inside_01","GEOLOGY",2023,"Inside",3,3,0,"Needs 4th review","Pre-fire count",,2,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,,2,"medium","low",TRUE,FALSE,FALSE,FALSE,FALSE
+"geology_2023_inside_06","GEOLOGY",2023,"Inside",3,3,0,"Needs 4th review","Pre veg cover",3,3,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,3,3,,"low",FALSE,FALSE,TRUE,FALSE,FALSE
+"geology_2023_outside_01","GEOLOGY",2023,"Outside",3,3,0,"Accepted","",4,3,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,4,3,"medium","medium",FALSE,FALSE,FALSE,FALSE,FALSE
+"ivanpah_2020_inside_01","IVANPAH",2020,"Inside",3,3,0,"Incomplete","Suitability minority split",,,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,,,,,FALSE,FALSE,FALSE,FALSE,TRUE
+"ivanpah_2020_inside_06","IVANPAH",2020,"Inside",3,3,0,"Needs 4th review","Post-fire count",3,,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,3,,"medium","low",FALSE,TRUE,FALSE,FALSE,FALSE
+"ivanpah_2020_outside_01","IVANPAH",2020,"Outside",3,3,0,"Needs 4th review","Pre-fire count; Post-fire count",,,TRUE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,,,"medium","medium",TRUE,TRUE,FALSE,FALSE,FALSE
+"johnson_2024_inside_01","JOHNSON",2024,"Inside",3,3,0,"Excluded","",,,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,,,,,FALSE,FALSE,FALSE,FALSE,FALSE
+"johnson_2024_inside_05","JOHNSON",2024,"Inside",3,3,0,"Needs 4th review","Pre-fire count",,0,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,,0,"medium","low",TRUE,FALSE,FALSE,FALSE,FALSE
+"johnson_2024_outside_01","JOHNSON",2024,"Outside",3,3,0,"Incomplete","Suitability minority split",,,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,,,,,FALSE,FALSE,FALSE,FALSE,TRUE
+"mojave_2021_inside_01","MOJAVE",2021,"Inside",3,3,0,"Needs 4th review","Pre-fire count; Post-fire count",,,TRUE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,,,"medium","low",TRUE,TRUE,FALSE,FALSE,FALSE
+"mojave_2021_inside_06","MOJAVE",2021,"Inside",3,3,0,"Accepted","",4,3,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,4,3,"medium","low",FALSE,FALSE,FALSE,FALSE,FALSE
+"mojave_2021_outside_01","MOJAVE",2021,"Outside",3,3,0,"Incomplete","Missing count",9,,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,9,,,"low",FALSE,FALSE,TRUE,FALSE,FALSE
+"nadeau_2020_inside_01","NADEAU",2020,"Inside",3,3,0,"Needs 4th review","Pre-fire count; Post-fire count",,,TRUE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,,,"medium","low",TRUE,TRUE,FALSE,FALSE,FALSE
+"nadeau_2020_inside_05","NADEAU",2020,"Inside",3,3,0,"Needs 4th review","Pre-fire count; Post-fire count",,,TRUE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,,,"medium","low",TRUE,TRUE,FALSE,FALSE,FALSE
+"nadeau_2020_outside_01","NADEAU",2020,"Outside",3,3,0,"Needs 4th review","Pre-fire count",,8,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,,8,"medium","medium",TRUE,FALSE,FALSE,FALSE,FALSE
+"pond_2021_inside_01","POND",2021,"Inside",3,3,0,"Needs 4th review","Pre-fire count; Post-fire count",,,TRUE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,,,"high","low",TRUE,TRUE,FALSE,FALSE,FALSE
+"pond_2021_inside_06","POND",2021,"Inside",3,3,0,"Needs 4th review","Pre-fire count; Post-fire count",,,TRUE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,,,"medium","low",TRUE,TRUE,FALSE,FALSE,FALSE
+"pond_2021_outside_01","POND",2021,"Outside",3,3,0,"Needs 4th review","Pre-fire count; Post-fire count",,,TRUE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,,,"high","medium",TRUE,TRUE,FALSE,FALSE,FALSE
+"quail_2012_inside_01","QUAIL",2012,"Inside",3,3,0,"Needs 4th review","Pre-fire count; Post-fire count; Pre veg cover",,,TRUE,TRUE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,,,,"low",TRUE,TRUE,TRUE,FALSE,FALSE
+"quail_2012_inside_03","QUAIL",2012,"Inside",3,3,0,"Needs 4th review","Pre-fire count; Post-fire count; Pre veg cover",,,TRUE,TRUE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,,,,"low",TRUE,TRUE,TRUE,FALSE,FALSE
+"quail_2012_outside_01","QUAIL",2012,"Outside",3,3,0,"Needs 4th review","Post-fire count",5,,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,5,,"medium","medium",FALSE,TRUE,FALSE,FALSE,FALSE
+"sheep_2022_inside_01","SHEEP",2022,"Inside",3,3,0,"Needs 4th review","Pre-fire count; Post-fire count",,,TRUE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,,,"high","low",TRUE,TRUE,FALSE,FALSE,FALSE
+"star_2019_inside_01","STAR",2019,"Inside",3,3,0,"Incomplete","Missing count; Missing veg cover",,,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,,,,"low",TRUE,FALSE,FALSE,FALSE,FALSE
+"star_2019_inside_06","STAR",2019,"Inside",3,3,0,"Incomplete","Missing veg cover",,,TRUE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,,,,"medium",TRUE,TRUE,FALSE,FALSE,FALSE
+"star_2019_outside_01","STAR",2019,"Outside",3,3,0,"Needs 4th review","Pre-fire count; Post-fire count",,,TRUE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,,,"medium","medium",TRUE,TRUE,FALSE,FALSE,FALSE
+"york_2023_inside_01","YORK",2023,"Inside",3,3,0,"Incomplete","Suitability minority split",,,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,,,,,FALSE,FALSE,FALSE,FALSE,TRUE
+"york_2023_inside_06","YORK",2023,"Inside",3,3,0,"Needs 4th review","Post-fire count",7,,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,7,,"low","low",FALSE,TRUE,FALSE,FALSE,FALSE
+"york_2023_outside_01","YORK",2023,"Outside",3,3,0,"Incomplete","Suitability minority split",,,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,,,,,FALSE,FALSE,FALSE,FALSE,TRUE

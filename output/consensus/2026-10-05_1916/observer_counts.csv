@@ -1,0 +1,146 @@
+"plot_id","fire","fire_year","location","observer","unsuitable","pre_fire","post_fire","pre_veg","post_veg","pre_confidence","post_confidence","comments"
+"boulevard_2023_inside_01","BOULEVARD",2023,"Inside","anitachamraj",FALSE,5,2,"medium","low","high","low","Most of the shurbs have burned post-fire."
+"boulevard_2023_inside_01","BOULEVARD",2023,"Inside","riannasamson",FALSE,5,2,"medium","low","high","low",
+"boulevard_2023_inside_01","BOULEVARD",2023,"Inside","sidney",FALSE,5,2,"medium","low","high","low","due to image quality, post-fire JT count is indeterminate"
+"boulevard_2023_outside_01","BOULEVARD",2023,"Outside","anitachamraj",FALSE,3,1,"high","medium","high","medium","It is difficult to see if the trees are burned or if it the camera quality."
+"boulevard_2023_outside_01","BOULEVARD",2023,"Outside","riannasamson",FALSE,2,2,"medium","medium","medium","medium","i believe the trees are still alive because they don't have a brown ish color?"
+"boulevard_2023_outside_01","BOULEVARD",2023,"Outside","sidney",FALSE,13,5,"medium","low","medium","low","not very distinct, some look grouped together"
+"cahuila_2017_inside_01","CAHUILA",2017,"Inside","anitachamraj",FALSE,7,3,"high","medium","medium",,
+"cahuila_2017_inside_01","CAHUILA",2017,"Inside","riannasamson",FALSE,5,2,"low","low","medium","low","the 2 at the bottom left 12/2017 have a greenish color?"
+"cahuila_2017_inside_01","CAHUILA",2017,"Inside","sidney",FALSE,5,3,"low","low","medium","medium",
+"cahuila_2017_inside_05","CAHUILA",2017,"Inside","anitachamraj",FALSE,2,1,"high","medium","medium","medium",
+"cahuila_2017_inside_05","CAHUILA",2017,"Inside","riannasamson",FALSE,2,0,"low","low","medium","low","can't tell if the left tree is 1 or 2, i think 1
+
+hard to tell if they are dead or not post-fire"
+"cahuila_2017_inside_05","CAHUILA",2017,"Inside","sidney",FALSE,2,1,"low","low","medium","medium",
+"cahuila_2017_outside_01","CAHUILA",2017,"Outside","anitachamraj",FALSE,3,1,"medium","medium","medium","medium",
+"cahuila_2017_outside_01","CAHUILA",2017,"Outside","riannasamson",TRUE,0,0,"low","low","medium","medium","I just see rocks no trees or shadows that look like trees?"
+"cahuila_2017_outside_01","CAHUILA",2017,"Outside","sidney",FALSE,1,1,"low","low","high","high",
+"cal_2024_inside_01","CAL",2024,"Inside","anitachamraj",FALSE,1,1,"high","low","medium","low",
+"cal_2024_inside_01","CAL",2024,"Inside","riannasamson",FALSE,3,0,"high","low","low","high","there's a lot going on before the fire so it's hard to tell where the joshua trees are
+
+everything was wiped out post-fire"
+"cal_2024_inside_01","CAL",2024,"Inside","sidney",FALSE,2,2,"high","high","low","low","JT grouped together, indistinguishable"
+"coles_flat_2020_inside_01","COLES FLAT",2020,"Inside","anitachamraj",FALSE,8,8,"medium","low","medium","medium",
+"coles_flat_2020_inside_01","COLES FLAT",2020,"Inside","riannasamson",FALSE,10,0,"medium","low","low","low","i was going off shadows pre-fire, and for post-fire everything is so grainy i can't really tell"
+"coles_flat_2020_inside_01","COLES FLAT",2020,"Inside","sidney",FALSE,11,2,"medium","medium","medium","low","image is too blurry to tell how many JT are present post-fire"
+"coles_flat_2020_inside_06","COLES FLAT",2020,"Inside","anitachamraj",FALSE,5,3,"medium","low","high","low",
+"coles_flat_2020_inside_06","COLES FLAT",2020,"Inside","riannasamson",FALSE,4,0,"medium","low","medium","medium","looks like everything was wiped out post fire"
+"coles_flat_2020_inside_06","COLES FLAT",2020,"Inside","sidney",FALSE,4,2,"medium","low","high","medium",
+"coles_flat_2020_outside_01","COLES FLAT",2020,"Outside","anitachamraj",TRUE,5,4,"medium","medium","medium","low","The 2020 is unusable and the 2023 is hard to make out."
+"coles_flat_2020_outside_01","COLES FLAT",2020,"Outside","riannasamson",FALSE,6,0,"medium","medium","medium","low","i was going off shadows pre-fire (but the small ones are hard to tell), and for post-fire everything is so grainy i can't really tell"
+"coles_flat_2020_outside_01","COLES FLAT",2020,"Outside","sidney",FALSE,9,4,"medium","medium","medium","low","image too blurry to get a count post-fire"
+"dome_2020_inside_01","DOME",2020,"Inside","anitachamraj",FALSE,7,5,"high","low","medium","medium",
+"dome_2020_inside_01","DOME",2020,"Inside","riannasamson",FALSE,14,0,"medium","low","medium","medium","the trees on the left side are easier to tell than the right"
+"dome_2020_inside_01","DOME",2020,"Inside","sidney",FALSE,16,3,"medium","low","medium","low",
+"dome_2020_inside_06","DOME",2020,"Inside","anitachamraj",FALSE,7,6,"medium","medium",,"medium",
+"dome_2020_inside_06","DOME",2020,"Inside","riannasamson",TRUE,0,0,"high","high","low","low","the only trees i see aren't joshua trees i believe??"
+"dome_2020_inside_06","DOME",2020,"Inside","sidney",TRUE,2,0,"high","medium","low","low","unsure if there are any JT in this plot at all, little to no presence if so"
+"dome_2020_outside_01","DOME",2020,"Outside","anitachamraj",FALSE,8,5,"medium","medium","medium","medium",
+"dome_2020_outside_01","DOME",2020,"Outside","riannasamson",FALSE,7,7,"medium","medium","medium","medium","the top right tree moves out of the border post fire?"
+"dome_2020_outside_01","DOME",2020,"Outside","sidney",FALSE,12,4,"low","low","medium","low",
+"elk_trail_2022_inside_01","ELK TRAIL",2022,"Inside","anitachamraj",FALSE,6,4,"high","low","medium","low",
+"elk_trail_2022_inside_01","ELK TRAIL",2022,"Inside","riannasamson",FALSE,16,3,"high","low","medium","low","either 3 or 0? there are 3 black dots on the right 05/2025 that may still be alive because they're not gray or white"
+"elk_trail_2022_inside_01","ELK TRAIL",2022,"Inside","sidney",FALSE,8,1,"high","low","medium","low",
+"elk_trail_2022_inside_05","ELK TRAIL",2022,"Inside","anitachamraj",FALSE,6,5,"high","low","medium","medium",
+"elk_trail_2022_inside_05","ELK TRAIL",2022,"Inside","riannasamson",FALSE,13,2,"medium","low","medium","high","there's a lot of possible joshua trees pre-fire i hope i counted right"
+"elk_trail_2022_inside_05","ELK TRAIL",2022,"Inside","sidney",FALSE,12,2,"high","low","medium",,
+"elk_trail_2022_outside_01","ELK TRAIL",2022,"Outside","anitachamraj",FALSE,3,3,"high","high","medium","medium",
+"elk_trail_2022_outside_01","ELK TRAIL",2022,"Outside","riannasamson",FALSE,4,4,"high","high","high","high",
+"elk_trail_2022_outside_01","ELK TRAIL",2022,"Outside","sidney",FALSE,3,3,"high","high","medium","medium",
+"geology_2023_inside_01","GEOLOGY",2023,"Inside","anitachamraj",FALSE,4,2,"medium","medium","medium","low",
+"geology_2023_inside_01","GEOLOGY",2023,"Inside","riannasamson",FALSE,7,0,"medium","low","high","low","i relied on shadows pre-fire
+
+it all looks dead post-fire but i know i had another plot where i considered ""black dots"" to be alive joshua trees"
+"geology_2023_inside_01","GEOLOGY",2023,"Inside","sidney",FALSE,8,2,"medium","low","medium","low",
+"geology_2023_inside_06","GEOLOGY",2023,"Inside","anitachamraj",FALSE,4,3,"high","medium","medium","low",
+"geology_2023_inside_06","GEOLOGY",2023,"Inside","riannasamson",FALSE,3,2,"medium","low","medium","low",
+"geology_2023_inside_06","GEOLOGY",2023,"Inside","sidney",FALSE,3,3,"low","low","medium","low",
+"geology_2023_outside_01","GEOLOGY",2023,"Outside","anitachamraj",FALSE,4,2,"medium","medium","medium","low",
+"geology_2023_outside_01","GEOLOGY",2023,"Outside","riannasamson",FALSE,3,3,"medium","medium","medium","medium",
+"geology_2023_outside_01","GEOLOGY",2023,"Outside","sidney",FALSE,4,3,"low","low","low","low",
+"ivanpah_2020_inside_01","IVANPAH",2020,"Inside","anitachamraj",FALSE,3,3,"high","high","medium","medium",
+"ivanpah_2020_inside_01","IVANPAH",2020,"Inside","riannasamson",FALSE,5,5,"medium","medium","medium","low",
+"ivanpah_2020_inside_01","IVANPAH",2020,"Inside","sidney",TRUE,8,3,"high","low","medium","low","only picture available is Jul 2023"
+"ivanpah_2020_inside_06","IVANPAH",2020,"Inside","anitachamraj",FALSE,3,3,"medium","medium","low","medium",
+"ivanpah_2020_inside_06","IVANPAH",2020,"Inside","riannasamson",FALSE,2,1,"medium","low","high","medium",
+"ivanpah_2020_inside_06","IVANPAH",2020,"Inside","sidney",FALSE,4,0,"high","low","medium","low","only image available for post-fire is Jul 2023"
+"ivanpah_2020_outside_01","IVANPAH",2020,"Outside","anitachamraj",FALSE,10,5,"medium","medium","medium","medium",
+"ivanpah_2020_outside_01","IVANPAH",2020,"Outside","riannasamson",FALSE,9,9,"medium","medium","medium","medium",
+"ivanpah_2020_outside_01","IVANPAH",2020,"Outside","sidney",FALSE,15,0,"medium","low","medium","low","only post-fire picture available is Jul 2023"
+"johnson_2024_inside_01","JOHNSON",2024,"Inside","anitachamraj",FALSE,7,3,"high","medium",,"low",
+"johnson_2024_inside_01","JOHNSON",2024,"Inside","riannasamson",TRUE,0,0,"high","medium","low","medium","they look like regular trees pre-fire not joshua trees? don't see any shadows"
+"johnson_2024_inside_01","JOHNSON",2024,"Inside","sidney",TRUE,,,,,,,"could not identify anything resembling a JT in this plot"
+"johnson_2024_inside_05","JOHNSON",2024,"Inside","anitachamraj",FALSE,4,2,"medium","high","medium","medium",
+"johnson_2024_inside_05","JOHNSON",2024,"Inside","riannasamson",FALSE,6,0,"medium","low","medium","high","i feel like the pre-fire trees don't have the joshua tree shadow but i could be wrong"
+"johnson_2024_inside_05","JOHNSON",2024,"Inside","sidney",FALSE,3,0,"low","low","medium","low",
+"johnson_2024_outside_01","JOHNSON",2024,"Outside","anitachamraj",FALSE,4,4,"high","medium","low","medium",
+"johnson_2024_outside_01","JOHNSON",2024,"Outside","riannasamson",FALSE,5,5,"medium","medium","low","medium","i feel like the trees don't look like joshua trees but maye that's because there isn't much to compare them to"
+"johnson_2024_outside_01","JOHNSON",2024,"Outside","sidney",TRUE,,,,,,,"could not identify anything resembling a JT in this plot"
+"mojave_2021_inside_01","MOJAVE",2021,"Inside","anitachamraj",FALSE,9,8,"medium","low","medium","medium",
+"mojave_2021_inside_01","MOJAVE",2021,"Inside","riannasamson",FALSE,14,0,"medium","low","medium","medium","shadows aren't super clear but i'm pretty sure they're joshua trees, also there are 2 trees on the right side of the border i decided on not including pre-fire
+
+i think the post-fire trees have a brownish tint, definitely no green so i think they're all dead?"
+"mojave_2021_inside_01","MOJAVE",2021,"Inside","sidney",FALSE,16,13,"medium","low","medium","low","only image available post-fire is from Jul 2023"
+"mojave_2021_inside_06","MOJAVE",2021,"Inside","anitachamraj",FALSE,4,4,"medium","medium","high","medium",
+"mojave_2021_inside_06","MOJAVE",2021,"Inside","riannasamson",FALSE,5,3,"medium","low","high","medium",
+"mojave_2021_inside_06","MOJAVE",2021,"Inside","sidney",FALSE,3,3,"low","low","high","medium","only image available post-fire is from Jul 2023"
+"mojave_2021_outside_01","MOJAVE",2021,"Outside","anitachamraj",FALSE,9,6,"high","low","medium","medium",
+"mojave_2021_outside_01","MOJAVE",2021,"Outside","riannasamson",FALSE,7,2,"medium","medium","high","low","i included the bordering trees pre-fire, judged by shadows
+
+it's really blurry for post-fire"
+"mojave_2021_outside_01","MOJAVE",2021,"Outside","sidney",FALSE,9,,"low","low","medium","low","only image available post-fire is from Jul 2023"
+"nadeau_2020_inside_01","NADEAU",2020,"Inside","anitachamraj",FALSE,7,7,"medium","low","medium","medium",
+"nadeau_2020_inside_01","NADEAU",2020,"Inside","riannasamson",FALSE,18,0,"medium","low","high","low","for pre-fire i included the trees with shadows that look like just a straight line too
+
+trees are still definitely there post-fire i just can't tell if they're alive/dead, i think they all look wiped out but i don't really know how to tell"
+"nadeau_2020_inside_01","NADEAU",2020,"Inside","sidney",FALSE,18,10,"low","low","medium","low","only image available post-fire is from Nov 2023"
+"nadeau_2020_inside_05","NADEAU",2020,"Inside","anitachamraj",FALSE,8,6,"medium","low","medium","medium",
+"nadeau_2020_inside_05","NADEAU",2020,"Inside","riannasamson",FALSE,8,2,"medium","low","high","low","maybe 2 post-fire because the shadows on some of the post-fire trees are really dark? but my gut says 0?"
+"nadeau_2020_inside_05","NADEAU",2020,"Inside","sidney",FALSE,14,2,"low","low","low","low","only available image post-fire is from Nov 2023"
+"nadeau_2020_outside_01","NADEAU",2020,"Outside","anitachamraj",FALSE,7,6,"medium","medium","medium","medium",
+"nadeau_2020_outside_01","NADEAU",2020,"Outside","riannasamson",FALSE,8,8,"medium","medium","high","medium","maybe the joshua trees in this area that look alive post-fire have darker shadows?"
+"nadeau_2020_outside_01","NADEAU",2020,"Outside","sidney",FALSE,14,8,"medium","medium","medium","medium","only image available post-fire is from Nov 2023"
+"pond_2021_inside_01","POND",2021,"Inside","anitachamraj",FALSE,5,4,"high","low","medium","medium",
+"pond_2021_inside_01","POND",2021,"Inside","riannasamson",FALSE,3,0,"high","low","medium","medium","there's a lot of vegetation pre-fire so it's hard to see where joshua trees might be
+
+the trees look grayish post-fire so i think they're dead?"
+"pond_2021_inside_01","POND",2021,"Inside","sidney",FALSE,14,8,"high","low","medium","low",
+"pond_2021_inside_06","POND",2021,"Inside","anitachamraj",FALSE,5,5,"medium","low","medium","medium",
+"pond_2021_inside_06","POND",2021,"Inside","riannasamson",FALSE,11,0,"medium","low","medium","medium","i really don't know how to tell if they're dead or alive post-fire, i think they're dead"
+"pond_2021_inside_06","POND",2021,"Inside","sidney",FALSE,5,1,"medium","low","high","low",
+"pond_2021_outside_01","POND",2021,"Outside","anitachamraj",FALSE,8,3,"high","high","medium","medium",
+"pond_2021_outside_01","POND",2021,"Outside","riannasamson",FALSE,15,9,"medium","medium","medium","low","shadows pre-fire look different every image but i think i counted all for 15?
+
+the post-fire image is not good"
+"pond_2021_outside_01","POND",2021,"Outside","sidney",FALSE,17,15,"high","medium","medium","medium",
+"quail_2012_inside_01","QUAIL",2012,"Inside","anitachamraj",FALSE,3,3,"high","low","medium","medium",
+"quail_2012_inside_01","QUAIL",2012,"Inside","riannasamson",FALSE,11,0,"medium","low","medium",,"i say they're all dead post-fire because they don't have the light green leaves"
+"quail_2012_inside_01","QUAIL",2012,"Inside","sidney",FALSE,14,0,"low","low","medium","medium","images from 2013 and beyond are after what appears to have been a wildfire; post-fire doese not show visible signs of JT"
+"quail_2012_inside_03","QUAIL",2012,"Inside","anitachamraj",FALSE,6,6,"high","low","medium","medium",
+"quail_2012_inside_03","QUAIL",2012,"Inside","riannasamson",FALSE,9,0,"low","low","high","high",
+"quail_2012_inside_03","QUAIL",2012,"Inside","sidney",FALSE,6,0,"medium","low","medium","high",
+"quail_2012_outside_01","QUAIL",2012,"Outside","anitachamraj",FALSE,4,3,"medium","high","medium","medium",
+"quail_2012_outside_01","QUAIL",2012,"Outside","riannasamson",FALSE,6,6,"medium","medium","high",,
+"quail_2012_outside_01","QUAIL",2012,"Outside","sidney",FALSE,5,5,"medium","medium","medium","low",
+"sheep_2022_inside_01","SHEEP",2022,"Inside","anitachamraj",FALSE,3,3,"high","low","low","low",
+"sheep_2022_inside_01","SHEEP",2022,"Inside","riannasamson",FALSE,8,0,"high","low","medium","high","well i went off the light-green shade for pre-fire"
+"sheep_2022_inside_01","SHEEP",2022,"Inside","sidney",FALSE,3,0,"high","low","low","high",
+"star_2019_inside_01","STAR",2019,"Inside","anitachamraj",FALSE,3,1,,"medium","high","low",
+"star_2019_inside_01","STAR",2019,"Inside","riannasamson",FALSE,12,0,"medium","low","medium","high",
+"star_2019_inside_01","STAR",2019,"Inside","sidney",FALSE,10,,"high","low","medium","medium",
+"star_2019_inside_06","STAR",2019,"Inside","anitachamraj",FALSE,5,4,"medium","medium","medium",,
+"star_2019_inside_06","STAR",2019,"Inside","riannasamson",FALSE,6,2,,"low","medium","low","i can't tell if the ""alive"" trees are light-green or gray post-fire"
+"star_2019_inside_06","STAR",2019,"Inside","sidney",FALSE,8,6,"high","medium","medium","low",
+"star_2019_outside_01","STAR",2019,"Outside","anitachamraj",FALSE,5,4,"medium","medium","medium","low",
+"star_2019_outside_01","STAR",2019,"Outside","riannasamson",FALSE,9,9,"medium","medium","medium","medium",
+"star_2019_outside_01","STAR",2019,"Outside","sidney",FALSE,15,15,"high","high","low","low",
+"york_2023_inside_01","YORK",2023,"Inside","anitachamraj",FALSE,7,4,"low","medium","medium","low","Hard to see the post fire pictures"
+"york_2023_inside_01","YORK",2023,"Inside","riannasamson",TRUE,9,,,,"high",,"there's no post-fire image"
+"york_2023_inside_01","YORK",2023,"Inside","sidney",FALSE,9,,"low","low","medium","low","no post-fire image available"
+"york_2023_inside_06","YORK",2023,"Inside","anitachamraj",FALSE,6,4,"low","low","medium","medium",
+"york_2023_inside_06","YORK",2023,"Inside","riannasamson",FALSE,8,0,"low","low","medium","medium","small trees?"
+"york_2023_inside_06","YORK",2023,"Inside","sidney",FALSE,7,0,"low","low","low","low","no post-fire image available"
+"york_2023_outside_01","YORK",2023,"Outside","anitachamraj",FALSE,7,7,"medium","medium","medium","medium",
+"york_2023_outside_01","YORK",2023,"Outside","riannasamson",TRUE,7,,,,,,"there's no post-fire image"
+"york_2023_outside_01","YORK",2023,"Outside","sidney",FALSE,7,0,"low","low","medium","low","no post-fire image available"

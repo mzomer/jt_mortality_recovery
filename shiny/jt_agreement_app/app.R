@@ -46,8 +46,8 @@ DATA_FOLDER <- ""
 # A cumulative CSV ledger committed to this git repo (not Drive, not edited
 # in-app). Each downloaded template starts from the existing ledger, preserves
 # every prior row/decision, and adds or refreshes plots that currently need
-# joint review. Fill only newly required review_* cells, save over this file,
-# and commit the change -- git history is the record of every decision.
+# joint review. Fill only the blank, still-disputed cells, save over this
+# file, and commit the change -- git history is the record of every decision.
 REVIEW_SHEET <- "joint_reviews"
 LOCAL_REVIEW_PATH <- here("shiny", "jt_agreement_app", paste0(REVIEW_SHEET, ".csv"))
 
@@ -169,10 +169,10 @@ status_levels <- c("Not started", "In progress", "Incomplete", "Excluded",
 status_help <- c(
   "Not started"      = "Opened in Collect Earth, but nobody has saved counts yet",
   "In progress"      = "Counted by some, but not yet all, of the three observers",
-  "Incomplete"       = "A required primary field is blank, or suitability has a minority split that needs rechecking",
-  "Excluded"         = "A majority of the primary observers marked the plot unsuitable",
-  "Accepted"         = "All fields are resolved (directly, after fourth review, or after joint review)",
-  "Needs 4th review" = "The primary observers didn't agree on at least one field; a fourth value is needed",
+  "Incomplete"       = "A required field is blank, or one observer split from the other two on suitability",
+  "Excluded"         = "A majority of observers marked the plot unsuitable",
+  "Accepted"         = "Counts and vegetation cover agree (directly, or after a fourth review)",
+  "Needs 4th review" = "The three observers didn't agree; a fourth reviewer's count is needed",
   "Conflict"         = "Still unresolved after a fourth review; needs joint review"
 )
 status_colors <- c(
@@ -468,17 +468,16 @@ spread_pattern <- function(x, abs_tol, rel_tol, n_required) {
 }
 
 # Joint review sheet ----
-# Only fields that remain unresolved after the fourth review are allowed to
-# override automatic consensus values. The new template therefore separates
-# read-only auto_* reference columns from blank/editable review_* decisions.
-# read_reviews() also accepts the old pre_fire/post_fire/pre_veg/post_veg
-# column names so an existing review file does not break the app; those values
-# are still ignored unless that particular field genuinely needs joint review.
+# joint_reviews.csv has exactly seven columns: plot_id, pre_fire, post_fire,
+# pre_veg, post_veg, conflict_fields, note. A field's value is only ever used
+# as a consensus override when that field is *currently* still unresolved
+# (need_joint_pre etc., computed live below from the real data) -- so a
+# pre-filled reference value sitting in an undisputed cell is automatically
+# ignored, never treated as a human decision.
 empty_reviews <- function() {
   tibble(id = character(0), rv_pre = numeric(0), rv_post = numeric(0),
          rv_pre_veg = character(0), rv_post_veg = character(0),
-         rv_note = character(0), rv_started = logical(0),
-         rv_review_status = character(0))
+         rv_note = character(0), rv_started = logical(0))
 }
 
 read_reviews <- function(path) {
@@ -495,41 +494,20 @@ read_reviews <- function(path) {
   # zero-row data frame triggers "replacement has 1 row, data has 0").
   if (nrow(r) == 0) return(empty_reviews())
 
-  # New names first; legacy names are accepted as a fallback.
-  for (col in c("review_pre", "review_post", "review_pre_veg", "review_post_veg",
-                "pre_fire", "post_fire", "pre_veg", "post_veg",
-                "note", "review_started", "review_status")) {
+  for (col in c("pre_fire", "post_fire", "pre_veg", "post_veg", "note")) {
     if (!col %in% names(r)) r[[col]] <- NA_character_
   }
 
-  value_or_legacy <- function(new, old) {
-    if_else(!is.na(new) & nzchar(str_trim(new)), new, old)
-  }
-
   r %>%
-    mutate(
-      .pre = value_or_legacy(review_pre, pre_fire),
-      .post = value_or_legacy(review_post, post_fire),
-      .pre_veg = value_or_legacy(review_pre_veg, pre_veg),
-      .post_veg = value_or_legacy(review_post_veg, post_veg),
-      .started_raw = str_to_lower(str_trim(coalesce(review_started, ""))),
-      .legacy_started =
-        !is.na(.pre) | !is.na(.post) | !is.na(.pre_veg) | !is.na(.post_veg) |
-        (!is.na(note) & nzchar(str_trim(note)))
-    ) %>%
     transmute(
       id = str_trim(plot_id),
-      rv_pre = suppressWarnings(as.numeric(.pre)),
-      rv_post = suppressWarnings(as.numeric(.post)),
-      rv_pre_veg = str_to_lower(str_trim(.pre_veg)),
-      rv_post_veg = str_to_lower(str_trim(.post_veg)),
+      rv_pre = suppressWarnings(as.numeric(pre_fire)),
+      rv_post = suppressWarnings(as.numeric(post_fire)),
+      rv_pre_veg = str_to_lower(str_trim(pre_veg)),
+      rv_post_veg = str_to_lower(str_trim(post_veg)),
       rv_note = note,
-      rv_started = case_when(
-        .started_raw %in% c("yes", "y", "true", "1", "x") ~ TRUE,
-        .started_raw %in% c("no", "n", "false", "0") ~ FALSE,
-        TRUE ~ .legacy_started
-      ),
-      rv_review_status = coalesce(review_status, "")
+      rv_started = !is.na(rv_pre) | !is.na(rv_post) | !is.na(rv_pre_veg) |
+        !is.na(rv_post_veg) | (!is.na(note) & nzchar(str_trim(note)))
     ) %>%
     filter(!is.na(id), nzchar(id)) %>%
     group_by(id) %>% slice_tail(n = 1) %>% ungroup()
@@ -1072,121 +1050,39 @@ expandable_datatable <- function(d, details, filter = "none",
   )
 }
 
-# Joint-review working table. Only fields still unresolved after the fourth
-# review get an editable review_* cell. auto_* columns are reference-only and
-# show any consensus already settled automatically.
-review_progress <- function(d) {
-  if (nrow(d) == 0) return(d)
-  filled <- function(x) !is.na(x) & nzchar(str_trim(as.character(x)))
-
-  d$.remaining <-
-    as.integer(d$.need_pre & !filled(d$review_pre)) +
-    as.integer(d$.need_post & !filled(d$review_post)) +
-    as.integer(d$.need_vpre & !filled(d$review_pre_veg)) +
-    as.integer(d$.need_vpost & !filled(d$review_post_veg))
-
-  d$.review_started <-
-    (d$.need_pre & filled(d$review_pre)) |
-    (d$.need_post & filled(d$review_post)) |
-    (d$.need_vpre & filled(d$review_pre_veg)) |
-    (d$.need_vpost & filled(d$review_post_veg)) |
-    filled(d$note)
-
-  d$`Review status` <- if_else(
-    d$.remaining == 0L, "Complete",
-    paste0("Needs ", d$.remaining,
-           if_else(d$.remaining == 1L, " decision", " decisions"))
-  )
-  d
-}
-
-fmt_review_count <- function(x) {
-  ifelse(is.na(x), "", format(x, trim = TRUE, scientific = FALSE))
-}
-
+# joint_reviews.csv has exactly seven columns: plot_id, pre_fire, post_fire,
+# pre_veg, post_veg, conflict_fields, note. A field pre-fills with its
+# automatic consensus value when already resolved, or is blank when
+# conflict_fields lists it as still disputed -- the reviewer only ever needs
+# to fill the blanks.
 review_template <- function(st) {
-  d <- st %>%
-    filter(rule_status == "Conflict") %>%
-    arrange(fire_name, id) %>%
-    mutate(
-      .need_pre = need_joint_pre,
-      .need_post = need_joint_post,
-      .need_vpre = need_joint_vpre,
-      .need_vpost = need_joint_vpost
-    ) %>%
+  conflicts <- st %>% filter(rule_status == "Conflict") %>% arrange(fire_name, id)
+  flags <- cbind(conflicts$f_pre %in% TRUE, conflicts$f_post %in% TRUE,
+                 conflicts$f_vpre %in% TRUE, conflicts$f_vpost %in% TRUE)
+  field_labels <- c("pre_fire", "post_fire", "pre_veg", "post_veg")
+  conflict_fields <- apply(flags, 1, function(row) {
+    paste(field_labels[row], collapse = "; ")
+  })
+
+  conflicts %>%
     transmute(
       plot_id = id,
-      fire = fire_name,
-      location = plot_location,
-      issues,
-      auto_pre = fmt_review_count(pre_resolved),
-      auto_post = fmt_review_count(post_resolved),
-      auto_pre_veg = coalesce(maj_pre_veg, ""),
-      auto_post_veg = coalesce(maj_post_veg, ""),
-      review_pre = if_else(.need_pre & !is.na(rv_pre),
-                           fmt_review_count(rv_pre), ""),
-      review_post = if_else(.need_post & !is.na(rv_post),
-                            fmt_review_count(rv_post), ""),
-      review_pre_veg = if_else(.need_vpre & !is.na(rv_pre_veg),
-                               rv_pre_veg, ""),
-      review_post_veg = if_else(.need_vpost & !is.na(rv_post_veg),
-                                rv_post_veg, ""),
-      note = coalesce(rv_note, ""),
-      .need_pre, .need_post, .need_vpre, .need_vpost
+      pre_fire = if_else(f_pre %in% TRUE, NA_real_, pre_resolved),
+      post_fire = if_else(f_post %in% TRUE, NA_real_, post_resolved),
+      pre_veg = if_else(f_vpre %in% TRUE, NA_character_, maj_pre_veg),
+      post_veg = if_else(f_vpost %in% TRUE, NA_character_, maj_post_veg),
+      conflict_fields = conflict_fields,
+      note = ""
     )
-  review_progress(d)
 }
 
 empty_review_file_data <- function() {
-  tibble(plot_id = character(0), fire = character(0),
-         location = character(0), issues = character(0),
-         auto_pre = character(0), auto_post = character(0),
-         auto_pre_veg = character(0), auto_post_veg = character(0),
-         review_pre = character(0), review_post = character(0),
-         review_pre_veg = character(0), review_post_veg = character(0),
-         note = character(0), required_fields = character(0),
-         review_started = character(0), review_status = character(0),
-         saved_at = character(0))
+  tibble(plot_id = character(0), pre_fire = double(0), post_fire = double(0),
+         pre_veg = character(0), post_veg = character(0),
+         conflict_fields = character(0), note = character(0))
 }
 
-review_file_data <- function(d) {
-  if (is.null(d) || nrow(d) == 0) return(empty_review_file_data())
-  d <- review_progress(d)
-  required <- function(i) {
-    x <- c(
-      if (isTRUE(d$.need_pre[i])) "review_pre" else NULL,
-      if (isTRUE(d$.need_post[i])) "review_post" else NULL,
-      if (isTRUE(d$.need_vpre[i])) "review_pre_veg" else NULL,
-      if (isTRUE(d$.need_vpost[i])) "review_post_veg" else NULL
-    )
-    paste(x, collapse = "; ")
-  }
-  tibble(
-    plot_id = d$plot_id,
-    fire = d$fire,
-    location = d$location,
-    issues = d$issues,
-    auto_pre = d$auto_pre,
-    auto_post = d$auto_post,
-    auto_pre_veg = d$auto_pre_veg,
-    auto_post_veg = d$auto_post_veg,
-    review_pre = d$review_pre,
-    review_post = d$review_post,
-    review_pre_veg = d$review_pre_veg,
-    review_post_veg = d$review_post_veg,
-    note = d$note,
-    required_fields = vapply(seq_len(nrow(d)), required, character(1)),
-    review_started = if_else(d$.review_started, "yes", "no"),
-    review_status = d$`Review status`,
-    saved_at = format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z")
-  )
-}
-
-# Read the git-tracked review CSV as the full cumulative ledger used for the
-# next template download. Unlike read_reviews(), this keeps display/reference
-# columns too, so rows from an earlier batch can survive even when that batch's
-# observer exports are not currently loaded in the app. Legacy decision column
-# names are upgraded to the current review_* schema on read.
+# Read the git-tracked ledger for merging into a fresh template download.
 read_review_ledger <- function(path) {
   if (is.null(path) || is.na(path) || !file.exists(path)) {
     return(empty_review_file_data())
@@ -1200,115 +1096,58 @@ read_review_ledger <- function(path) {
   }
   if (nrow(r) == 0) return(empty_review_file_data())
 
-  # Upgrade the old editable columns if this ledger predates the review_*
-  # template. Existing review_* values win when both forms are present.
-  legacy <- c(review_pre = "pre_fire", review_post = "post_fire",
-              review_pre_veg = "pre_veg", review_post_veg = "post_veg")
-  for (new_col in names(legacy)) {
-    old_col <- legacy[[new_col]]
-    if (!new_col %in% names(r)) r[[new_col]] <- NA_character_
-    if (old_col %in% names(r)) {
-      use_old <- is.na(r[[new_col]]) | !nzchar(str_trim(coalesce(r[[new_col]], "")))
-      r[[new_col]][use_old] <- r[[old_col]][use_old]
-    }
+  for (col in c("pre_fire", "post_fire", "pre_veg", "post_veg",
+               "conflict_fields", "note")) {
+    if (!col %in% names(r)) r[[col]] <- NA_character_
   }
-
-  cols <- names(empty_review_file_data())
-  for (col in setdiff(cols, names(r))) r[[col]] <- rep(NA_character_, nrow(r))
 
   r %>%
     transmute(
       plot_id = str_trim(plot_id),
-      fire = coalesce(fire, ""),
-      location = coalesce(location, ""),
-      issues = coalesce(issues, ""),
-      auto_pre = coalesce(auto_pre, ""),
-      auto_post = coalesce(auto_post, ""),
-      auto_pre_veg = coalesce(auto_pre_veg, ""),
-      auto_post_veg = coalesce(auto_post_veg, ""),
-      review_pre = coalesce(review_pre, ""),
-      review_post = coalesce(review_post, ""),
-      review_pre_veg = coalesce(review_pre_veg, ""),
-      review_post_veg = coalesce(review_post_veg, ""),
-      note = coalesce(note, ""),
-      required_fields = coalesce(required_fields, ""),
-      review_started = coalesce(review_started, ""),
-      review_status = coalesce(review_status, ""),
-      saved_at = coalesce(saved_at, "")
+      pre_fire = suppressWarnings(as.numeric(pre_fire)),
+      post_fire = suppressWarnings(as.numeric(post_fire)),
+      pre_veg = str_to_lower(str_trim(pre_veg)),
+      post_veg = str_to_lower(str_trim(post_veg)),
+      conflict_fields = coalesce(conflict_fields, ""),
+      note = note
     ) %>%
     filter(!is.na(plot_id), nzchar(plot_id)) %>%
     group_by(plot_id) %>% slice_tail(n = 1) %>% ungroup()
 }
 
-# Recalculate the two bookkeeping columns after old and new rows are merged.
-# required_fields is the authority for what must be filled; values in any other
-# review_* column are preserved as history but do not make an unrelated field
-# required or allow it to override consensus.
-refresh_review_ledger_status <- function(d) {
-  if (nrow(d) == 0) return(d)
-  filled <- function(x) !is.na(x) & nzchar(str_trim(as.character(x)))
-  needed <- function(field) {
-    vapply(strsplit(coalesce(d$required_fields, ""), ";", fixed = TRUE),
-           function(x) field %in% str_trim(x), logical(1))
-  }
-
-  remaining <-
-    as.integer(needed("review_pre") & !filled(d$review_pre)) +
-    as.integer(needed("review_post") & !filled(d$review_post)) +
-    as.integer(needed("review_pre_veg") & !filled(d$review_pre_veg)) +
-    as.integer(needed("review_post_veg") & !filled(d$review_post_veg))
-
-  started <- filled(d$review_pre) | filled(d$review_post) |
-    filled(d$review_pre_veg) | filled(d$review_post_veg) | filled(d$note)
-
-  d$review_started <- if_else(started, "yes", "no")
-  d$review_status <- if_else(
-    remaining == 0L, "Complete",
-    paste0("Needs ", remaining,
-           if_else(remaining == 1L, " decision", " decisions"))
-  )
-  d
+# TRUE where `field` appears in that row's conflict_fields list.
+has_field <- function(conflict_fields, field) {
+  vapply(strsplit(coalesce(conflict_fields, ""), "; ", fixed = TRUE),
+        function(x) field %in% x, logical(1))
 }
 
-# Cumulative template rule: never remove an existing ledger row. For plots that
-# are present in both the ledger and the current data, refresh the automatic
-# metadata/reference columns but preserve all human review_* decisions and
-# notes. New conflicts are appended. Existing-only rows (e.g. Week 1 while only
-# Week 2 exports are loaded) remain untouched.
+# Cumulative ledger rule: never drop an existing row just because its plot
+# isn't in the currently loaded batch. For a plot in both, a field keeps its
+# existing value only while it's still listed in that *existing* row's
+# conflict_fields (a preserved human decision, or one still awaited) AND the
+# fresh template still shows it blank (still disputed right now) -- a field
+# that has since resolved on its own always takes the fresh automatic value,
+# regardless of whatever used to be in that cell.
 merge_review_ledger <- function(existing, current) {
-  if (is.null(existing) || nrow(existing) == 0) {
-    return(refresh_review_ledger_status(current))
-  }
-  if (is.null(current) || nrow(current) == 0) {
-    return(refresh_review_ledger_status(existing))
-  }
+  if (nrow(current) == 0) return(existing)
+  if (nrow(existing) == 0) return(current)
 
-  decision_cols <- c("review_pre", "review_post",
-                     "review_pre_veg", "review_post_veg", "note")
+  fields <- c("pre_fire", "post_fire", "pre_veg", "post_veg")
+  matched <- current %>%
+    left_join(existing, by = "plot_id", suffix = c("", "_old"))
 
-  overlap <- current %>%
-    filter(plot_id %in% existing$plot_id) %>%
-    left_join(
-      existing %>%
-        select(plot_id, all_of(decision_cols)) %>%
-        rename_with(~ paste0(.x, "_old"), all_of(decision_cols)),
-      by = "plot_id"
-    )
-
-  for (col in decision_cols) {
-    old_col <- paste0(col, "_old")
-    old_has_value <- !is.na(overlap[[old_col]]) &
-      nzchar(str_trim(as.character(overlap[[old_col]])))
-    overlap[[col]][old_has_value] <- overlap[[old_col]][old_has_value]
-    overlap[[old_col]] <- NULL
+  for (field in fields) {
+    old_value <- matched[[paste0(field, "_old")]]
+    keep_old <- has_field(matched$conflict_fields_old, field) &
+      !is.na(old_value) & is.na(matched[[field]])
+    matched[[field]] <- if_else(keep_old, old_value, matched[[field]])
   }
+  matched$note <- if_else(!is.na(matched$note_old) & nzchar(matched$note_old),
+                          matched$note_old, matched$note)
+  matched <- matched %>% select(all_of(names(current)))
 
   existing_only <- existing %>% filter(!plot_id %in% current$plot_id)
-  current_new <- current %>% filter(!plot_id %in% existing$plot_id)
-
-  bind_rows(overlap, current_new, existing_only) %>%
-    arrange(fire, plot_id) %>%
-    refresh_review_ledger_status()
+  bind_rows(matched, existing_only) %>% arrange(plot_id)
 }
 
 # Data checks: individual entries worth a second look ----
@@ -1368,105 +1207,101 @@ data_checks <- function(reads, st, primary_observers) {
 about_template <- '
 ### What the app does
 
-Three primary observers independently count each plot in pre- and post-fire
-imagery, assign a vegetation cover class, and flag unsuitable plots. The app
-checks whether they agree field by field, sends only disputed fields to a
-fourth reviewer, escalates anything still unresolved to joint review, and
-builds the consensus dataset used in the analysis.
-
-If `PRIMARY_OBSERVERS` is left empty at the top of `app.R`, the app infers the
-primary {N} observers as those with the greatest number of completed plots.
-A selective fourth reviewer normally has much lower plot coverage. Set
-`PRIMARY_OBSERVERS` explicitly if you want to lock the names.
+Three observers independently count each plot in pre- and post-fire imagery,
+assign a vegetation cover class, and flag unsuitable plots. The app checks
+whether they agree, escalates disagreements to a fourth reviewer and then
+joint review, and builds the consensus dataset used in the analysis.
 
 ### Plot status
 
 | Status | Meaning |
 |---|---|
-| **Not started** | None of the primary observers has saved the plot yet |
-| **In progress** | Fewer than {N} primary observers have saved it |
-| **Incomplete** | A required primary-observer field is blank, or suitability has a minority split that needs rechecking |
-| **Excluded** | A majority of the primary observers marked the plot unsuitable |
-| **Accepted** | Every field is resolved -- directly, after a fourth review, or after joint review |
-| **Needs 4th review** | At least one count or vegetation field disagreed among the primary observers and still needs its fourth value |
-| **Conflict** | A fourth value was supplied for every disputed field, but at least one field is still unresolved |
+| **Not started** | Opened in Collect Earth, but no counts saved yet |
+| **In progress** | Counted by fewer than {N} observers so far |
+| **Incomplete** | A required field is blank, or one observer split from the other two on suitability -- see Data checks |
+| **Excluded** | Majority marked the plot unsuitable |
+| **Accepted** | Counts and vegetation cover agree -- directly, after a fourth review, or after joint review |
+| **Needs 4th review** | Observers didn\'t agree on at least one field; a fourth reviewer is needed |
+| **Conflict** | Still disputed after a fourth review; needs joint review |
 
 ### How a plot gets there
 
-Suitability, pre-fire count, post-fire count, pre-fire vegetation cover, and
-post-fire vegetation cover are checked independently.
+Suitability, counts, and vegetation cover (pre and post) are each checked
+independently -- a disagreement on one field never blocks another field that
+already agreed, and **a field that already agrees is locked in for good**: a
+fourth reviewer can never overturn it, only settle the field(s) that actually
+disagreed.
 
-- A field that already resolves among the primary observers is **frozen**.
-  A fourth reviewer cannot change it.
-- A blank required field from a primary observer -> **Incomplete** and goes
-  back to that observer.
-- Suitability is decided from the primary observers only. A **majority
-  unsuitable** -> **Excluded**. A minority suitability split -> **Incomplete**
-  for rechecking. With three observers, that means 0 unsuitable continues,
-  1 unsuitable is Incomplete, and 2 or 3 unsuitable is Excluded.
-- A disagreement on a count or vegetation field -> **Needs 4th review** for
-  that field only.
-- Once a fourth value has been supplied for every disputed field, the plot is
-  **Accepted** if all fields resolve; otherwise it becomes **Conflict**.
-- Conflict is resolved by joint review, again only for the fields that remain
-  unresolved.
+- Suitability and vegetation cover are decided by **majority**; counts must
+  **agree within tolerance** (see Agreement rule, below).
+- A blank entry, or one observer splitting from the other two on
+  suitability -> **Incomplete**: back to that observer, not a fourth
+  reviewer.
+- A disagreement on counts or vegetation cover -> **Needs 4th review**, then
+  **Accepted** or **Conflict** once a fourth count is added (see Fourth
+  review, below).
+- Still disputed after that -> **Conflict**, resolved by joint review.
+
+A plot always ends up Excluded or Accepted -- the review steps are skipped
+entirely whenever the three observers already agree.
 
 ### Agreement rule
 
 - **Counts** (pre- and post-fire): spread (highest minus lowest) no more
   than **{ABS} tree(s) or {REL}% of the median, whichever is larger**.
   {EXAMPLE}
-- **Vegetation cover** (pre and post): majority class.
-- **Suitability**: majority unsuitable excludes the plot; a minority split is
-  rechecked before proceeding.
+- **Vegetation cover** (pre and post): majority of the suitable observers
+  (at least 2 of 3).
+- **Suitability**: majority of however many observers judged the plot --
+  always resolves with three. A split sends the plot to Incomplete so the
+  dissenting observer can double-check before being overruled, but it never
+  needs a fourth reviewer or joint review.
 
 ### Fourth review
 
-A plot in **Needs 4th review** needs one more independent observation for the
-fields listed in Issues. Add the fourth reviewer\'s Collect Earth export to the
-shared folder like any other observer file.
+A plot in **Needs 4th review** needs one more independent count in Collect
+Earth, but only for the field(s) listed in Issues -- fields that already
+agreed stay locked at their original value. Export it like any other
+observer\'s file and add it to the shared folder; the app treats anyone
+beyond the original three as that plot\'s fourth reviewer automatically. It
+resolves as soon as any three values agree on a disputed field (the odd one
+out is discarded); otherwise that field moves to Conflict.
 
-For a disputed count, the app combines the primary values with the fourth
-value and accepts the field as soon as **any {N} values agree within
-threshold**; the outlier is discarded. For a disputed vegetation class, the
-fourth value supplies the deciding majority. Fields that already agreed before
-the fourth review stay locked at their original consensus.
-
-The **Spread pattern** column on Overview describes the original primary
-count disagreement: **Outlier** means two primary observers were already close
-and one was off; **Even spread** means no pair was close enough on its own.
+The **Spread pattern** column on Overview hints at how likely that is:
+**Outlier** (two of the three already agree, one is off) usually resolves;
+**Even spread** (no two agree) is more likely to end up in joint review
+regardless of what the fourth reviewer counts.
 
 ### Joint review
 
-Every plot still in Conflict is listed on the Joint review tab. Download the
-template and fill **only the `review_*` columns named in `required_fields`**.
-The `auto_*` columns are read-only reference values for fields that already
-resolved automatically; editing them has no effect on consensus.
+Every plot still in Conflict is listed on the Joint review tab, with the
+same observer-comparison view as Overview. Download the template and fill in
+only the blank cells -- everything else is either already agreed (shown for
+reference) or not something that needs a decision. This file is cumulative:
+each new download already includes every plot anyone has ever reviewed, not
+just the current conflicts, so a past decision is never lost just because
+that plot isn\'t loaded today.
 
-The review file is a **cumulative ledger across batches**. Every template
-download starts from the existing **{SHEET}.csv**, preserves all previous rows
-and review decisions, and adds or refreshes plots that currently need joint
-review. For a new week, fill only the new blank required cells, then save the
-downloaded file over **{SHEET}.csv** in `shiny/jt_agreement_app/` and commit it
-to git. A previous decision is therefore not lost just because that plot or
-batch is not currently loaded in the app. The app re-reads the ledger
-automatically, and observers\' own records are never changed.
+Save the filled-in file over **{SHEET}.csv** in `shiny/jt_agreement_app/`,
+then commit it to git -- that commit history is the permanent record of
+every decision. The app re-reads it automatically; observers\' own counts
+are never changed.
 
 ### Consensus values
 
-Counts are the **median of the agreeing values**; after fourth review this is
-the median of the agreeing {N}-value subset. Vegetation cover is the
-**majority** class (Swanson et al. 2016). Joint-review values are used only for
-fields that actually remained unresolved after the fourth review.
-
-Mortality is calculated from consensus pre- and post-fire counts for inside
-plots. It is available as soon as both count fields are resolved, even if a
-different field on that plot still needs review.
+Counts are the **median** of whichever values were agreed to be used;
+vegetation cover is the **majority** class (Swanson et al. 2016). Mortality
+is calculated from consensus counts, inside plots only.
 
 ### Which data are used
 
 {SOURCE} For each observer, {NEWEST} The most recent saved version is used
 if a plot was saved more than once.
+
+The three observers are identified automatically as whoever has counted the
+most plots; anyone else is treated as a fourth reviewer. (A project
+maintainer can lock their names instead -- see `PRIMARY_OBSERVERS` in
+`app.R`.)
 
 ### Low confidence
 
@@ -1591,10 +1426,10 @@ ui <- page_navbar(
     uiOutput("tolerance_example"),
     helpText("A count or vegetation disagreement goes to a fourth",
              "reviewer, then to joint review if still unresolved."),
-    helpText("A blank primary-observer field goes back to that observer.",
-             "For suitability, a minority split is Incomplete; a majority",
-             "unsuitable excludes the plot. A fourth reviewer only affects",
-             "count/vegetation fields that were actually disputed."),
+    helpText("A blank entry, or one observer splitting from the other two",
+             "on suitability, goes back to that observer instead, not to a",
+             "fourth reviewer -- once it's resolved, the plot is checked",
+             "against the agreement rule above as usual."),
     tags$hr(),
     selectInput("fire_filter", "Fires", choices = NULL, multiple = TRUE),
     helpText("Leave empty to include all fires.")
@@ -1675,10 +1510,16 @@ ui <- page_navbar(
          DTOutput("checks_table", fill = FALSE)),
     card(
       card_header("Downloads"),
-      p(tags$strong("Consensus data:"), "one row per plot, with the consensus",
-        "counts, vegetation cover, mortality and low-confidence flags used in",
-        "the analysis. Only fields that are still unresolved are blank; fields",
-        "already settled remain available even if another field is in conflict."),
+      p(tags$strong("Consensus data:"), "a live snapshot, one row per plot,",
+        "with the consensus counts, vegetation cover, mortality and",
+        "low-confidence flags so far. Only fields that are still unresolved",
+        "are blank; fields already settled remain available even if another",
+        "field on that plot is in conflict. This is for checking progress,",
+        "not the file to analyze: the final dataset is built separately by",
+        tags$code("scripts/14_build_consensus_dataset_simple.R"),
+        ", which only runs once every plot is fully resolved and records",
+        "exactly which tier (primary, fourth review, or joint review)",
+        "produced each value."),
       downloadButton("dl_consensus", "Consensus data"),
       p(class = "mt-3", tags$strong("Observer counts:"),
         "one row per observer per plot (their own, independent values)."),
@@ -1706,12 +1547,16 @@ ui <- page_navbar(
                     choices = c("All", unname(issue_labels[disagreement_cols])))
       ),
       p("Click a row to see every observer's entries underneath",
-        "(unresolved fields shaded red). Download the template and fill only",
-        "the review_* columns listed in required_fields; auto_* columns are",
-        "reference values and cannot override automatic consensus. The template",
-        "is cumulative: it preserves every existing row/decision in",
-        tags$code(paste0(REVIEW_SHEET, ".csv")), "and adds newly conflicted plots.",
-        "Fill the new blanks, save the download over",
+        "(unresolved fields shaded red). Download the template: each row has",
+        "the four fields (", tags$code("pre_fire"), ",", tags$code("post_fire"),
+        ",", tags$code("pre_veg"), ",", tags$code("post_veg"), ") pre-filled",
+        "wherever they already resolved automatically, and blank wherever",
+        tags$code("conflict_fields"), "lists them as still disputed -- fill in",
+        "only those blanks. An already-resolved field cannot be overridden",
+        "by anything written in its cell. The template is cumulative: it",
+        "preserves every existing row/decision in",
+        tags$code(paste0(REVIEW_SHEET, ".csv")), "and adds or refreshes",
+        "currently conflicted plots. Save the download over",
         tags$code(paste0(REVIEW_SHEET, ".csv")), "in",
         tags$code("shiny/jt_agreement_app/"), "and commit it to git. The app",
         "re-reads that ledger automatically."),
@@ -1877,7 +1722,7 @@ server <- function(input, output, session) {
   status <- reactive({
     s <- settings()
     validate(need(length(primary_observers()) == s$n_required,
-                  "Could not identify the full set of primary observers."))
+                  "Could not identify the three observers."))
     plot_status(reads(), s$abs_tol, s$rel_tol, s$n_required, reviews(),
                 primary_observers()) %>%
       left_join(select(low_conf(), id, pre_low, post_low, n_rated,
@@ -1938,8 +1783,8 @@ server <- function(input, output, session) {
     full <- status() %>% filter(fully_counted)
     n_full <- nrow(full)
     n_conf_before <- sum(full$rule_status == "Conflict")
-    txt <- if (n_full == 0) "No plots have been counted by all primary observers yet." else
-      sprintf(paste("%d plots counted by all primary observers: %d (%.0f%%) were in",
+    txt <- if (n_full == 0) "No plots have been counted by all observers yet." else
+      sprintf(paste("%d plots counted by all observers: %d (%.0f%%) were in",
                     "conflict after a fourth review, %d of those resolved",
                     "by joint review."),
               n_full, n_conf_before, 100 * n_conf_before / n_full,
@@ -2041,13 +1886,7 @@ server <- function(input, output, session) {
         }
       )
 
-      conflicts <- status() %>% filter(rule_status == "Conflict")
-      current <- if (nrow(conflicts) == 0) {
-        empty_review_file_data()
-      } else {
-        review_file_data(review_template(status()))
-      }
-
+      current <- review_template(status())
       out <- merge_review_ledger(existing, current)
       write.csv(out, file, row.names = FALSE, na = "")
     }
@@ -2186,7 +2025,7 @@ server <- function(input, output, session) {
     n_conf <- sum(full$rule_status == "Conflict")
     p(class = "summary-line", tags$strong("Plots in conflict before review: "),
       if (n_full == 0) "\u2013" else
-        sprintf("%.1f%% (%d of %d plots counted by all primary observers)",
+        sprintf("%.1f%% (%d of %d plots counted by all observers)",
                 100 * n_conf / n_full, n_conf, n_full))
   })
 
@@ -2221,7 +2060,7 @@ server <- function(input, output, session) {
     ) %>%
       filter(!is.na(value), !is.na(median)) %>%
       mutate(measure = factor(measure, levels = c("Pre-fire count", "Post-fire count")))
-    validate(need(nrow(long) > 0, "No plots counted by all primary observers yet."))
+    validate(need(nrow(long) > 0, "No plots counted by all observers yet."))
     obs <- sort(unique(long$observer))
     base_hues <- c("#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4")
     hues <- if (length(obs) <= length(base_hues)) base_hues[seq_along(obs)] else
