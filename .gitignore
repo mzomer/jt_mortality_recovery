@@ -6,6 +6,11 @@
 # macOS
 .DS_Store
 
+# Python
+__pycache__/
+*.pyc
+.venv/
+
 # Source data — exceed GitHub 100 MB limit (download instructions in README)
 data/fire_boundaries/
 data/vegetation_nps/
