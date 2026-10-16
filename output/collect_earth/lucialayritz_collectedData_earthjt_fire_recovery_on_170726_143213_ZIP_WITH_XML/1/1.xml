@@ -1,0 +1,49 @@
+<?xml version='1.0' standalone='yes' ?>
+<plot step="1" created="2026-07-10T14:24:02.949-07:00" modified="2026-07-14T08:45:16.023-07:00">
+  <id>
+    <value>johnson_2024_outside_02</value>
+  </id>
+  <location>
+    <x>-117.5610568</x>
+    <y>34.402634</y>
+    <srs>EPSG:4326</srs>
+  </location>
+  <operator>
+    <value>lucialayritz</value>
+  </operator>
+  <actively_saved>
+    <value>true</value>
+  </actively_saved>
+  <actively_saved_on>
+    <year>2026</year>
+    <month>7</month>
+    <day>14</day>
+  </actively_saved_on>
+  <plot_file>
+    <value>placemark.csv</value>
+  </plot_file>
+  <fire_name>
+    <value>JOHNSON</value>
+  </fire_name>
+  <fire_date>
+    <value>27-Aug-2024</value>
+  </fire_date>
+  <jt_pre_fire>
+    <value>1</value>
+  </jt_pre_fire>
+  <pre_confidence>
+    <code>medium</code>
+  </pre_confidence>
+  <pre_vegetation_cover>
+    <code>high</code>
+  </pre_vegetation_cover>
+  <jt_post_fire>
+    <value>1</value>
+  </jt_post_fire>
+  <post_confidence />
+  <post_vegetation_cover>
+    <code>high</code>
+  </post_vegetation_cover>
+  <comments />
+  <plot_unsuitable />
+</plot>

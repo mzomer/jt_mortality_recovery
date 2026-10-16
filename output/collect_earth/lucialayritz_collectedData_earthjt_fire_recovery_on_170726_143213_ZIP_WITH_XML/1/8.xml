@@ -1,0 +1,53 @@
+<?xml version='1.0' standalone='yes' ?>
+<plot step="1" created="2026-07-14T08:58:50.662-07:00" modified="2026-07-14T09:01:32.613-07:00">
+  <id>
+    <value>elk_trail_2022_outside_02</value>
+  </id>
+  <location>
+    <x>-116.4430346</x>
+    <y>34.0837054</y>
+    <srs>EPSG:4326</srs>
+  </location>
+  <operator>
+    <value>lucialayritz</value>
+  </operator>
+  <actively_saved>
+    <value>true</value>
+  </actively_saved>
+  <actively_saved_on>
+    <year>2026</year>
+    <month>7</month>
+    <day>14</day>
+  </actively_saved_on>
+  <plot_file>
+    <value>placemark.csv</value>
+  </plot_file>
+  <fire_name>
+    <value>ELK TRAIL</value>
+  </fire_name>
+  <fire_date>
+    <value>25-May-2022</value>
+  </fire_date>
+  <jt_pre_fire>
+    <value>11</value>
+  </jt_pre_fire>
+  <pre_confidence>
+    <code>medium</code>
+  </pre_confidence>
+  <pre_vegetation_cover>
+    <code>high</code>
+  </pre_vegetation_cover>
+  <jt_post_fire>
+    <value>9</value>
+  </jt_post_fire>
+  <post_confidence>
+    <code>low</code>
+  </post_confidence>
+  <post_vegetation_cover>
+    <code>high</code>
+  </post_vegetation_cover>
+  <comments>
+    <value>Image quality was not great,  I was more counting shadows than trees</value>
+  </comments>
+  <plot_unsuitable />
+</plot>
