@@ -392,7 +392,9 @@ rule_description <- function(abs_tol, rel_tol, rule) {
 # primary/fourth-reviewer distinction, no escalation stage, no persisted
 # review ledger. See issue_labels/team_review_cols above for the possible
 # disagreement reasons.
-plot_status <- function(reads, abs_tol, rel_tol, rule = "either") {
+# check_veg = FALSE: vegetation cover is neither required nor compared, so
+# only counts (and suitability) decide Incomplete / Team review.
+plot_status <- function(reads, abs_tol, rel_tol, rule = "either", check_veg = TRUE) {
   all_plots <- reads %>% distinct(id, fire_name, fire_year, plot_location)
 
   empty_row <- function(n_obs, observers, rule_status, issues = "") {
@@ -418,18 +420,18 @@ plot_status <- function(reads, abs_tol, rel_tol, rule = "either") {
       if (n_obs > 2) {
         return(empty_row(n_obs, paste(sort(d$observer), collapse = ", "),
                          "Team review", issue_labels[["f_extra"]]) %>%
-                 mutate(f_pre = TRUE, f_post = TRUE, f_vpre = TRUE, f_vpost = TRUE))
+                 mutate(f_pre = TRUE, f_post = TRUE, f_vpre = check_veg, f_vpost = check_veg))
       }
 
       d <- d[order(d$observer), ]
       observers_txt <- paste(d$observer, collapse = ", ")
       entry_complete <- d$unsuitable |
         (!is.na(d$jt_pre_fire) & !is.na(d$jt_post_fire) &
-           !is.na(d$pre_veg) & !is.na(d$post_veg))
+           (!check_veg | (!is.na(d$pre_veg) & !is.na(d$post_veg))))
 
       if (!all(entry_complete)) {
         missing_count <- any(!d$unsuitable & (is.na(d$jt_pre_fire) | is.na(d$jt_post_fire)))
-        missing_veg <- any(!d$unsuitable & (is.na(d$pre_veg) | is.na(d$post_veg)))
+        missing_veg <- check_veg && any(!d$unsuitable & (is.na(d$pre_veg) | is.na(d$post_veg)))
         issues <- paste(
           c(if (missing_count) issue_labels[["f_missing"]],
             if (missing_veg) issue_labels[["f_vmissing"]]),
@@ -450,8 +452,10 @@ plot_status <- function(reads, abs_tol, rel_tol, rule = "either") {
 
       pre_ok <- counts_agree(d$jt_pre_fire[1], d$jt_pre_fire[2], abs_tol, rel_tol, rule)
       post_ok <- counts_agree(d$jt_post_fire[1], d$jt_post_fire[2], abs_tol, rel_tol, rule)
-      vpre_ok <- identical(d$pre_veg[1], d$pre_veg[2])
-      vpost_ok <- identical(d$post_veg[1], d$post_veg[2])
+      vpre_same <- identical(d$pre_veg[1], d$pre_veg[2])
+      vpost_same <- identical(d$post_veg[1], d$post_veg[2])
+      vpre_ok <- vpre_same || !check_veg
+      vpost_ok <- vpost_same || !check_veg
       all_ok <- pre_ok && post_ok && vpre_ok && vpost_ok
 
       issues <- paste(
@@ -464,8 +468,9 @@ plot_status <- function(reads, abs_tol, rel_tol, rule = "either") {
 
       pre_val <- if (all_ok) median_count(d$jt_pre_fire) else NA_real_
       post_val <- if (all_ok) median_count(d$jt_post_fire) else NA_real_
-      pre_veg_val <- if (all_ok) d$pre_veg[1] else NA_character_
-      post_veg_val <- if (all_ok) d$post_veg[1] else NA_character_
+      # Final cover only where both observers gave the same class
+      pre_veg_val <- if (all_ok && vpre_same) d$pre_veg[1] else NA_character_
+      post_veg_val <- if (all_ok && vpost_same) d$post_veg[1] else NA_character_
       mortality_val <- if (!is.na(pre_val) && pre_val > 0 && !is.na(post_val) &&
                             d$plot_location[1] == "Inside") {
         (pre_val - post_val) / pre_val * 100
@@ -504,13 +509,14 @@ plot_status <- function(reads, abs_tol, rel_tol, rule = "either") {
 # Resolved. The resolver only fills in the fields that disagreed: those come
 # from the resolution, the rest from the two observers' agreed values. A
 # disagreeing field the resolver left blank stays NA and is listed in
-# res_missing (highlighted in the app, but the plot is still Resolved). With
+# res_missing (highlighted in the app, but the plot is still Resolved). A
+# value the resolver gave for a field that didn't need it still wins. With
 # a suitability or >2-observer disagreement, every field needs resolving,
 # unless the resolver marks the plot unsuitable.
 res_field_labels <- c(pre = "pre-fire count", post = "post-fire count",
                       vpre = "pre vegetation cover", vpost = "post vegetation cover")
 
-apply_resolutions <- function(st, reads, res) {
+apply_resolutions <- function(st, reads, res, check_veg = TRUE) {
   if (is.null(res) || nrow(res) == 0) {
     res <- tibble(id = character(0), observer = character(0), unsuitable = logical(0),
                   jt_pre_fire = numeric(0), jt_post_fire = numeric(0),
@@ -521,11 +527,14 @@ apply_resolutions <- function(st, reads, res) {
     transmute(id, res_by = observer, res_unsuit = unsuitable,
               res_pre = jt_pre_fire, res_post = jt_post_fire,
               res_vpre = pre_veg, res_vpost = post_veg, res_comments = comments)
+  # Values both observers gave (one observer alone is not an agreed value)
   agreed <- reads %>%
     filter(completed, !unsuitable) %>%
     group_by(id) %>%
+    filter(n() == 2) %>%
     summarise(obs_pre = median_count(jt_pre_fire), obs_post = median_count(jt_post_fire),
-              obs_vpre = first(na.omit(pre_veg)), obs_vpost = first(na.omit(post_veg)),
+              obs_vpre = if (n_distinct(pre_veg) == 1) first(pre_veg) else NA_character_,
+              obs_vpost = if (n_distinct(post_veg) == 1) first(post_veg) else NA_character_,
               .groups = "drop")
   missing_text <- function(m) {
     vapply(seq_len(nrow(m)), function(i) paste(res_field_labels[m[i, ]], collapse = ", "),
@@ -541,18 +550,18 @@ apply_resolutions <- function(st, reads, res) {
       keep = resolved & !res_unsuit,
       res_need_pre = keep & (f_pre | f_suit),
       res_need_post = keep & (f_post | f_suit),
-      res_need_vpre = keep & (f_vpre | f_suit),
-      res_need_vpost = keep & (f_vpost | f_suit),
+      res_need_vpre = keep & (f_vpre | f_suit & check_veg),
+      res_need_vpost = keep & (f_vpost | f_suit & check_veg),
       res_missing = missing_text(cbind(
         res_need_pre & is.na(res_pre), res_need_post & is.na(res_post),
         res_need_vpre & is.na(res_vpre), res_need_vpost & is.na(res_vpost))),
-      cons_pre = if_else(resolved, if_else(keep, if_else(res_need_pre, res_pre, obs_pre),
+      cons_pre = if_else(resolved, if_else(keep, if_else(res_need_pre, res_pre, coalesce(res_pre, obs_pre)),
                                            NA_real_), cons_pre),
-      cons_post = if_else(resolved, if_else(keep, if_else(res_need_post, res_post, obs_post),
+      cons_post = if_else(resolved, if_else(keep, if_else(res_need_post, res_post, coalesce(res_post, obs_post)),
                                             NA_real_), cons_post),
-      cons_pre_veg = if_else(resolved, if_else(keep, if_else(res_need_vpre, res_vpre, obs_vpre),
+      cons_pre_veg = if_else(resolved, if_else(keep, if_else(res_need_vpre, res_vpre, coalesce(res_vpre, obs_vpre)),
                                                NA_character_), cons_pre_veg),
-      cons_post_veg = if_else(resolved, if_else(keep, if_else(res_need_vpost, res_vpost, obs_vpost),
+      cons_post_veg = if_else(resolved, if_else(keep, if_else(res_need_vpost, res_vpost, coalesce(res_vpost, obs_vpost)),
                                                 NA_character_), cons_post_veg),
       cons_mortality = if_else(
         resolved,
@@ -799,9 +808,7 @@ two records directly and builds the consensus dataset for plots that agree.
 
 - **Counts** (pre- and post-fire): the absolute difference between the two
   observers is no more than **{RULE}**. {EXAMPLE}
-- **Vegetation cover** (pre and post) and **suitability** must match
-  **exactly** between the two observers -- no majority vote, since there are
-  only two of them.
+- {VEG}
 - Agreeing on everything -> **Accepted**; final pre- and post-fire counts
   are the **rounded average** of the two observers\' counts (rounded half up,
   so counts stay whole trees).
@@ -826,7 +833,7 @@ Flagged when at least {LOWMIN} observers marked low confidence for the same
 period. Can mean poor imagery or a hard-to-count plot -- check the comments.
 '
 
-about_markdown <- function(abs_tol, rel_tol, rule, newest_only, source) {
+about_markdown <- function(abs_tol, rel_tol, rule, newest_only, source, check_veg = TRUE) {
   source_text <- switch(
     source,
     drive = "Exports are read from the shared Google Drive folder, re-checked every minute.",
@@ -847,6 +854,15 @@ about_markdown <- function(abs_tol, rel_tol, rule, newest_only, source) {
   fill <- c("{SOURCE}" = source_text, "{NEWEST}" = newest_text,
             "{EXAMPLE}" = example_text,
             "{RULE}" = rule_description(abs_tol, rel_tol, rule),
+            "{VEG}" = if (check_veg) paste(
+              "**Vegetation cover** (pre and post) and **suitability** must match",
+              "**exactly** between the two observers -- no majority vote, since",
+              "there are only two of them.") else paste(
+              "**Suitability** must match **exactly** between the two observers.",
+              "**Vegetation cover is currently not compared** (switched off in the",
+              "sidebar): it is not required, differences in it do not send a plot",
+              "to Team review, and the final cover is kept only where both",
+              "observers gave the same class."),
             "{LOWMIN}" = format(LOW_CONF_MIN))
   for (key in names(fill)) md <- gsub(key, fill[[key]], md, fixed = TRUE)
   md
@@ -951,8 +967,12 @@ ui <- page_navbar(
                    selected = "either")),
     uiOutput("tolerance_example"),
     helpText("Untick a tolerance to leave it out; with neither, counts must",
-             "match exactly. Vegetation cover and suitability must always",
-             "match exactly. 14_build_consensus.R uses \"either\"."),
+             "match exactly. Suitability must always match exactly.",
+             "14_build_consensus.R uses \"either\"."),
+    checkboxInput("check_veg", "Compare vegetation cover", value = FALSE),
+    helpText("When off, vegetation cover is not required and differences",
+             "in it don't send a plot to Team review; the final cover is",
+             "kept only where both observers agree."),
     helpText("Any disagreement goes to Team review -- there is no fourth",
              "reviewer or automatic escalation in this version."),
     tags$hr(),
@@ -1227,15 +1247,16 @@ server <- function(input, output, session) {
            max(0, input$abs_tol %||% 2, na.rm = TRUE),
          rel_tol = if (isFALSE(input$use_rel)) NA_real_ else
            max(0, input$rel_tol %||% 20, na.rm = TRUE),
-         rule = input$tol_rule %||% "either")
+         rule = input$tol_rule %||% "either",
+         check_veg = isTRUE(input$check_veg))
   })
 
   low_conf <- reactive(low_confidence_by_plot(reads()))
 
   status <- reactive({
     s <- settings()
-    plot_status(reads(), s$abs_tol, s$rel_tol, s$rule) %>%
-      apply_resolutions(reads(), resolved()) %>%
+    plot_status(reads(), s$abs_tol, s$rel_tol, s$rule, s$check_veg) %>%
+      apply_resolutions(reads(), resolved(), s$check_veg) %>%
       left_join(select(low_conf(), id, pre_low, post_low, n_rated,
                        low_conf_label, low_conf_period), by = "id") %>%
       mutate(low_conf_label = coalesce(low_conf_label, ""))
@@ -1741,7 +1762,8 @@ server <- function(input, output, session) {
   # How it works ----
   output$about_page <- renderUI({
     s <- settings()
-    shiny::markdown(about_markdown(s$abs_tol, s$rel_tol, s$rule, input$newest_only, folder_source()))
+    shiny::markdown(about_markdown(s$abs_tol, s$rel_tol, s$rule, input$newest_only, folder_source(),
+                                   s$check_veg))
   })
 }
 
