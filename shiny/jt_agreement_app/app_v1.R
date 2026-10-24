@@ -30,10 +30,13 @@ options(shiny.maxRequestSize = 30 * 1024^2)
 `%||%` <- function(x, y) if (is.null(x)) y else x
 
 # Where the exports live ----
-DRIVE_FOLDER <- "1xC1P6iVUxQd2cq3tSNHYuaojeWyqxvGL"
+# Exports are read from data/from_drive, filled by running
+# scripts/15_sync_drive_exports.R by hand. To read Drive live instead, set
+DRIVE_FOLDER <- "1xC1P6iVUxQd2cq3tSNHYuaojeWyqxvGL" #(it takes priority).
+
 options(gargle_oauth_email = TRUE)  # reuse the saved Google sign-in, don't ask
 
-DATA_FOLDER <- ""
+DATA_FOLDER <- ''
 
 # Collect Earth plot number ----
 # IMPORTANT: update ACTIVE_SURVEY whenever the survey observers are actively
@@ -52,6 +55,10 @@ drive_poll_ms <- 60000   # how often to re-check Google Drive
 folder_poll_ms <- 15000  # how often to re-check a local folder
 
 export_pattern <- "collectedData.*\\.csv$"
+# Exports whose file name starts with "resolved" hold the team's resolutions
+# of Team review plots, not a third observer's counts
+resolved_pattern <- "^resolved"
+is_resolved_file <- function(name) grepl(resolved_pattern, basename(name), ignore.case = TRUE)
 
 empty_files <- function() {
   data.frame(name = character(0), datapath = character(0),
@@ -128,14 +135,15 @@ folder_source <- function() {
 
 # Status categories, in display order ----
 status_levels <- c("Not started", "In progress", "Incomplete", "Excluded",
-                   "Accepted", "Team review")
+                   "Accepted", "Team review", "Resolved")
 status_help <- c(
   "Not started" = "Opened in Collect Earth, but neither observer has saved counts yet",
   "In progress" = "Counted by one of the two observers so far",
   "Incomplete"  = "Both observers have saved, but a required field is blank in at least one entry",
   "Excluded"    = "Both observers marked the plot unsuitable",
   "Accepted"    = "Both entries agree on suitability, vegetation cover, and counts",
-  "Team review" = "Both entries are complete, but disagree on suitability, vegetation cover, or counts"
+  "Team review" = "Both entries are complete, but disagree on suitability, vegetation cover, or counts",
+  "Resolved"    = "Was in Team review; the disagreeing fields were settled in a resolved export"
 )
 status_colors <- c(
   "Not started" = "#B8B3A2",
@@ -143,11 +151,13 @@ status_colors <- c(
   "Incomplete"  = "#7C8DA6",
   "Excluded"    = "#6F7773",
   "Accepted"    = "#4E6A3E",
-  "Team review" = "#A3452F"
+  "Team review" = "#A3452F",
+  "Resolved"    = "#5E5A8C"
 )
 status_text <- c("Not started" = "#2B2B2B", "In progress" = "#2B2B2B",
                  "Incomplete" = "#FFFFFF", "Excluded" = "#FFFFFF",
-                 "Accepted" = "#FFFFFF", "Team review" = "#FFFFFF")
+                 "Accepted" = "#FFFFFF", "Team review" = "#FFFFFF",
+                 "Resolved" = "#FFFFFF")
 
 issue_labels <- c(
   f_suit     = "Suitability disagreement",
@@ -172,7 +182,8 @@ check_labels <- c(
   veg_bad       = "Unrecognised vegetation cover class",
   conf_missing  = "Confidence missing",
   unsuit_counts = "Marked unsuitable but has counts",
-  not_saved     = "Opened but nothing saved"
+  not_saved     = "Opened but nothing saved",
+  res_unused    = "Resolution for a plot not in Team review"
 )
 
 # Fire display order, matching the master sampling datasheet's row order.
@@ -347,15 +358,33 @@ median_count <- function(x) {
 }
 
 # Agreement rule: counts agree if the absolute difference is no more than
-# the larger of abs_tol trees or rel_tol% of their mean. With exactly two
-# values, mean and median are the same number, so this is a direct
-# simplification of the three-observer spread/median rule, not a new metric.
-pair_tolerance <- function(a, b, abs_tol, rel_tol) {
-  max(abs_tol, rel_tol / 100 * mean(c(a, b)))
+# the allowed difference for their mean: abs_tol trees and/or rel_tol% of the
+# mean. rule = "either" allows the larger of the two (as in
+# 14_build_consensus.R), "both" the smaller. A tolerance set to NA is not
+# used; with neither, counts must match exactly. With exactly two values,
+# mean and median are the same number, so this is a direct simplification of
+# the three-observer spread/median rule, not a new metric.
+allowed_difference <- function(m, abs_tol, rel_tol, rule = "either") {
+  tols <- c(abs_tol, rel_tol / 100 * m)
+  tols <- tols[!is.na(tols)]
+  if (length(tols) == 0) return(0)
+  if (rule == "both") min(tols) else max(tols)
 }
 
-counts_agree <- function(a, b, abs_tol, rel_tol) {
-  !is.na(a) & !is.na(b) & abs(a - b) <= pair_tolerance(a, b, abs_tol, rel_tol)
+counts_agree <- function(a, b, abs_tol, rel_tol, rule = "either") {
+  !is.na(a) & !is.na(b) &
+    abs(a - b) <= allowed_difference(mean(c(a, b)), abs_tol, rel_tol, rule)
+}
+
+# Plain-language version of the count rule, for the sidebar and About tab
+rule_description <- function(abs_tol, rel_tol, rule) {
+  abs_txt <- paste0(format(abs_tol), " tree(s)")
+  rel_txt <- paste0(format(rel_tol), "% of their average")
+  if (is.na(abs_tol) && is.na(rel_tol)) return("0 trees: counts must match exactly")
+  if (is.na(rel_tol)) return(abs_txt)
+  if (is.na(abs_tol)) return(rel_txt)
+  if (rule == "both") paste(abs_txt, "and", rel_txt, "(both must hold)")
+  else paste(abs_txt, "or", rel_txt, "(whichever is larger)")
 }
 
 # Plot status and consensus values ----
@@ -363,7 +392,9 @@ counts_agree <- function(a, b, abs_tol, rel_tol) {
 # primary/fourth-reviewer distinction, no escalation stage, no persisted
 # review ledger. See issue_labels/team_review_cols above for the possible
 # disagreement reasons.
-plot_status <- function(reads, abs_tol, rel_tol) {
+# check_veg = FALSE: vegetation cover is neither required nor compared, so
+# only counts (and suitability) decide Incomplete / Team review.
+plot_status <- function(reads, abs_tol, rel_tol, rule = "either", check_veg = TRUE) {
   all_plots <- reads %>% distinct(id, fire_name, fire_year, plot_location)
 
   empty_row <- function(n_obs, observers, rule_status, issues = "") {
@@ -389,18 +420,18 @@ plot_status <- function(reads, abs_tol, rel_tol) {
       if (n_obs > 2) {
         return(empty_row(n_obs, paste(sort(d$observer), collapse = ", "),
                          "Team review", issue_labels[["f_extra"]]) %>%
-                 mutate(f_pre = TRUE, f_post = TRUE, f_vpre = TRUE, f_vpost = TRUE))
+                 mutate(f_pre = TRUE, f_post = TRUE, f_vpre = check_veg, f_vpost = check_veg))
       }
 
       d <- d[order(d$observer), ]
       observers_txt <- paste(d$observer, collapse = ", ")
       entry_complete <- d$unsuitable |
         (!is.na(d$jt_pre_fire) & !is.na(d$jt_post_fire) &
-           !is.na(d$pre_veg) & !is.na(d$post_veg))
+           (!check_veg | (!is.na(d$pre_veg) & !is.na(d$post_veg))))
 
       if (!all(entry_complete)) {
         missing_count <- any(!d$unsuitable & (is.na(d$jt_pre_fire) | is.na(d$jt_post_fire)))
-        missing_veg <- any(!d$unsuitable & (is.na(d$pre_veg) | is.na(d$post_veg)))
+        missing_veg <- check_veg && any(!d$unsuitable & (is.na(d$pre_veg) | is.na(d$post_veg)))
         issues <- paste(
           c(if (missing_count) issue_labels[["f_missing"]],
             if (missing_veg) issue_labels[["f_vmissing"]]),
@@ -419,10 +450,12 @@ plot_status <- function(reads, abs_tol, rel_tol) {
                  mutate(f_suit = TRUE))
       }
 
-      pre_ok <- counts_agree(d$jt_pre_fire[1], d$jt_pre_fire[2], abs_tol, rel_tol)
-      post_ok <- counts_agree(d$jt_post_fire[1], d$jt_post_fire[2], abs_tol, rel_tol)
-      vpre_ok <- identical(d$pre_veg[1], d$pre_veg[2])
-      vpost_ok <- identical(d$post_veg[1], d$post_veg[2])
+      pre_ok <- counts_agree(d$jt_pre_fire[1], d$jt_pre_fire[2], abs_tol, rel_tol, rule)
+      post_ok <- counts_agree(d$jt_post_fire[1], d$jt_post_fire[2], abs_tol, rel_tol, rule)
+      vpre_same <- identical(d$pre_veg[1], d$pre_veg[2])
+      vpost_same <- identical(d$post_veg[1], d$post_veg[2])
+      vpre_ok <- vpre_same || !check_veg
+      vpost_ok <- vpost_same || !check_veg
       all_ok <- pre_ok && post_ok && vpre_ok && vpost_ok
 
       issues <- paste(
@@ -435,8 +468,9 @@ plot_status <- function(reads, abs_tol, rel_tol) {
 
       pre_val <- if (all_ok) median_count(d$jt_pre_fire) else NA_real_
       post_val <- if (all_ok) median_count(d$jt_post_fire) else NA_real_
-      pre_veg_val <- if (all_ok) d$pre_veg[1] else NA_character_
-      post_veg_val <- if (all_ok) d$post_veg[1] else NA_character_
+      # Final cover only where both observers gave the same class
+      pre_veg_val <- if (all_ok && vpre_same) d$pre_veg[1] else NA_character_
+      post_veg_val <- if (all_ok && vpost_same) d$post_veg[1] else NA_character_
       mortality_val <- if (!is.na(pre_val) && pre_val > 0 && !is.na(post_val) &&
                             d$plot_location[1] == "Inside") {
         (pre_val - post_val) / pre_val * 100
@@ -468,6 +502,81 @@ plot_status <- function(reads, abs_tol, rel_tol) {
       status = factor(rule_status, levels = status_levels),
       fully_counted = n_obs >= 2
     )
+}
+
+# Resolutions ----
+# A Team review plot with a saved entry in a resolved export becomes
+# Resolved. The resolver only fills in the fields that disagreed: those come
+# from the resolution, the rest from the two observers' agreed values. A
+# disagreeing field the resolver left blank stays NA and is listed in
+# res_missing (highlighted in the app, but the plot is still Resolved). A
+# value the resolver gave for a field that didn't need it still wins. With
+# a suitability or >2-observer disagreement, every field needs resolving,
+# unless the resolver marks the plot unsuitable.
+res_field_labels <- c(pre = "pre-fire count", post = "post-fire count",
+                      vpre = "pre vegetation cover", vpost = "post vegetation cover")
+
+apply_resolutions <- function(st, reads, res, check_veg = TRUE) {
+  if (is.null(res) || nrow(res) == 0) {
+    res <- tibble(id = character(0), observer = character(0), unsuitable = logical(0),
+                  jt_pre_fire = numeric(0), jt_post_fire = numeric(0),
+                  pre_veg = character(0), post_veg = character(0),
+                  comments = character(0))
+  }
+  r <- res %>%
+    transmute(id, res_by = observer, res_unsuit = unsuitable,
+              res_pre = jt_pre_fire, res_post = jt_post_fire,
+              res_vpre = pre_veg, res_vpost = post_veg, res_comments = comments)
+  # Values both observers gave (one observer alone is not an agreed value)
+  agreed <- reads %>%
+    filter(completed, !unsuitable) %>%
+    group_by(id) %>%
+    filter(n() == 2) %>%
+    summarise(obs_pre = median_count(jt_pre_fire), obs_post = median_count(jt_post_fire),
+              obs_vpre = if (n_distinct(pre_veg) == 1) first(pre_veg) else NA_character_,
+              obs_vpost = if (n_distinct(post_veg) == 1) first(post_veg) else NA_character_,
+              .groups = "drop")
+  missing_text <- function(m) {
+    vapply(seq_len(nrow(m)), function(i) paste(res_field_labels[m[i, ]], collapse = ", "),
+           character(1))
+  }
+
+  st %>%
+    left_join(r, by = "id") %>%
+    left_join(agreed, by = "id") %>%
+    mutate(
+      resolved = rule_status == "Team review" & !is.na(res_by),
+      res_unsuit = coalesce(res_unsuit, FALSE),
+      keep = resolved & !res_unsuit,
+      res_need_pre = keep & (f_pre | f_suit),
+      res_need_post = keep & (f_post | f_suit),
+      res_need_vpre = keep & (f_vpre | f_suit & check_veg),
+      res_need_vpost = keep & (f_vpost | f_suit & check_veg),
+      res_missing = missing_text(cbind(
+        res_need_pre & is.na(res_pre), res_need_post & is.na(res_post),
+        res_need_vpre & is.na(res_vpre), res_need_vpost & is.na(res_vpost))),
+      cons_pre = if_else(resolved, if_else(keep, if_else(res_need_pre, res_pre, coalesce(res_pre, obs_pre)),
+                                           NA_real_), cons_pre),
+      cons_post = if_else(resolved, if_else(keep, if_else(res_need_post, res_post, coalesce(res_post, obs_post)),
+                                            NA_real_), cons_post),
+      cons_pre_veg = if_else(resolved, if_else(keep, if_else(res_need_vpre, res_vpre, coalesce(res_vpre, obs_vpre)),
+                                               NA_character_), cons_pre_veg),
+      cons_post_veg = if_else(resolved, if_else(keep, if_else(res_need_vpost, res_vpost, coalesce(res_vpost, obs_vpost)),
+                                                NA_character_), cons_post_veg),
+      cons_mortality = if_else(
+        resolved,
+        if_else(keep & plot_location == "Inside" & !is.na(cons_pre) & cons_pre > 0 &
+                  !is.na(cons_post), (cons_pre - cons_post) / cons_pre * 100, NA_real_),
+        cons_mortality),
+      rule_status = if_else(resolved, "Resolved", rule_status),
+      status = factor(rule_status, levels = status_levels),
+      # A resolution only applies to a Team review plot; elsewhere drop it
+      # (it is listed under Data checks instead)
+      across(c(res_by, res_pre, res_post, res_vpre, res_vpost, res_comments),
+             ~ replace(.x, !resolved, NA)),
+      res_unsuit = resolved & res_unsuit
+    ) %>%
+    select(-keep, -resolved, -starts_with("obs_"))
 }
 
 # Each observer's record joined to its plot's flags (for shading)
@@ -542,6 +651,16 @@ plot_summary_line <- function(s) {
     paste0("Incomplete: ", s$issues)
   } else if (s$status == "Team review") {
     paste0("Team review: ", s$issues)
+  } else if (s$status == "Resolved" && s$res_unsuit) {
+    sprintf("Resolved by %s: plot marked unsuitable (was in Team review: %s)",
+            s$res_by, s$issues)
+  } else if (s$status == "Resolved") {
+    sprintf("Resolved by %s: pre-fire %s, post-fire %s, vegetation %s → %s%s%s (was in Team review: %s)",
+            s$res_by, fmt(s$cons_pre), fmt(s$cons_post), fmt(s$cons_pre_veg),
+            fmt(s$cons_post_veg),
+            if (is.na(s$cons_mortality)) "" else sprintf(", mortality %.0f%%", s$cons_mortality),
+            if (nzchar(s$res_missing)) paste0(". Still missing: ", s$res_missing) else "",
+            s$issues)
   } else if (s$status == "Excluded") {
     "Excluded: both observers marked the plot unsuitable"
   } else {
@@ -565,6 +684,27 @@ plot_details_all <- function(flags, st) {
     cell_td(d$`Veg pre`, d$.vpre, d$.excluded), cell_td(d$`Veg post`, d$.vpost, d$.excluded),
     cell_td(d$Suitable, d$.suit), "<td>", d$Comments, "</td></tr>")
   rows_by_plot <- tapply(d$row_html, d$.id, paste, collapse = "")
+
+  # The resolution as an extra row under the observers' entries
+  res_st <- st[st$status %in% "Resolved", ]
+  for (i in seq_len(nrow(res_st))) {
+    s <- res_st[i, ]
+    res_td <- function(value, need) {
+      if (need && is.na(value)) return("<td class='res-missing'>missing</td>")
+      paste0("<td>", if (is.na(value)) "–" else htmltools::htmlEscape(format(value)), "</td>")
+    }
+    rows_by_plot[s$id] <- paste0(
+      coalesce(rows_by_plot[s$id], ""),
+      "<tr class='res-row'><td><b>Resolved</b> (", htmltools::htmlEscape(s$res_by), ")</td>",
+      res_td(s$res_pre, s$res_need_pre), res_td(s$res_post, s$res_need_post),
+      "<td>", if (is.na(s$cons_mortality)) "–" else sprintf("%.0f%%", s$cons_mortality), "</td>",
+      res_td(s$res_vpre, s$res_need_vpre), res_td(s$res_vpost, s$res_need_vpost),
+      "<td>", if (s$res_unsuit) "no" else if (s$f_suit) "yes" else "–", "</td>",
+      "<td>", if (is.na(s$res_comments)) "" else
+        paste0("<div class='cmt'>", htmltools::htmlEscape(s$res_comments), "</div>"),
+      "</td></tr>")
+  }
+
   header <- paste0("<table class='table table-sm detail-table'><thead><tr>",
                    "<th>Observer</th><th>Pre-fire</th><th>Post-fire</th>",
                    "<th>Mortality</th><th>Veg pre</th><th>Veg post</th>",
@@ -594,6 +734,7 @@ expandable_datatable <- function(d, details, filter = "none",
     class = table_class,
     callback = JS(sprintf(
       "table.on('click', 'tbody tr', function(e) {
+         if ($(e.target).is('input.plot-tick')) return;
          var tr = $(this);
          var row = table.row(tr);
          if (!row.data()) return;
@@ -661,20 +802,25 @@ two records directly and builds the consensus dataset for plots that agree.
 | **Excluded** | Both observers marked the plot unsuitable |
 | **Accepted** | Suitability, vegetation cover, and counts all agree |
 | **Team review** | Both entries are complete, but disagree on something -- see Issues |
+| **Resolved** | Was in Team review; the disagreeing fields were settled in a resolved export |
 
 ### Agreement rule
 
 - **Counts** (pre- and post-fire): the absolute difference between the two
-  observers is no more than **{ABS} tree(s) or {REL}% of their average,
-  whichever is larger**. {EXAMPLE}
-- **Vegetation cover** (pre and post) and **suitability** must match
-  **exactly** between the two observers -- no majority vote, since there are
-  only two of them.
+  observers is no more than **{RULE}**. {EXAMPLE}
+- {VEG}
 - Agreeing on everything -> **Accepted**; final pre- and post-fire counts
   are the **rounded average** of the two observers\' counts (rounded half up,
   so counts stay whole trees).
 - Any disagreement on suitability, vegetation cover, or counts ->
   **Team review** -- resolved by a human, not automatically.
+- **Resolutions** come from exports whose file name starts with
+  `resolved`. The resolver fills in only the fields that disagreed. A Team
+  review plot with a saved resolution becomes **Resolved**: its final values
+  are the resolver\'s for the disagreeing fields and the observers\' agreed
+  values for the rest. A disagreeing field left blank is highlighted as
+  missing. A resolution for a plot that is not in Team review is ignored and
+  listed under Data checks.
 
 ### Which data are used
 
@@ -687,7 +833,7 @@ Flagged when at least {LOWMIN} observers marked low confidence for the same
 period. Can mean poor imagery or a hard-to-count plot -- check the comments.
 '
 
-about_markdown <- function(abs_tol, rel_tol, newest_only, source) {
+about_markdown <- function(abs_tol, rel_tol, rule, newest_only, source, check_veg = TRUE) {
   source_text <- switch(
     source,
     drive = "Exports are read from the shared Google Drive folder, re-checked every minute.",
@@ -700,14 +846,24 @@ about_markdown <- function(abs_tol, rel_tol, newest_only, source) {
   } else {
     "all of their exports are merged."
   }
-  tol_at <- function(m) format(round(max(abs_tol, rel_tol / 100 * m), 1))
+  tol_at <- function(m) format(round(allowed_difference(m, abs_tol, rel_tol, rule), 1))
   example_text <- paste0("For example, the allowed difference is ", tol_at(5),
                          " for plots averaging 5 trees and ", tol_at(30),
                          " for an average of 30.")
   md <- about_template
   fill <- c("{SOURCE}" = source_text, "{NEWEST}" = newest_text,
-            "{EXAMPLE}" = example_text, "{ABS}" = format(abs_tol),
-            "{REL}" = format(rel_tol), "{LOWMIN}" = format(LOW_CONF_MIN))
+            "{EXAMPLE}" = example_text,
+            "{RULE}" = rule_description(abs_tol, rel_tol, rule),
+            "{VEG}" = if (check_veg) paste(
+              "**Vegetation cover** (pre and post) and **suitability** must match",
+              "**exactly** between the two observers -- no majority vote, since",
+              "there are only two of them.") else paste(
+              "**Suitability** must match **exactly** between the two observers.",
+              "**Vegetation cover is currently not compared** (switched off in the",
+              "sidebar): it is not required, differences in it do not send a plot",
+              "to Team review, and the final cover is kept only where both",
+              "observers gave the same class."),
+            "{LOWMIN}" = format(LOW_CONF_MIN))
   for (key in names(fill)) md <- gsub(key, fill[[key]], md, fixed = TRUE)
   md
 }
@@ -769,13 +925,25 @@ table.dataTable > tbody > tr.child > td { background: #FAFAF8; padding: .8rem 1.
 .detail-table td, .detail-table th { padding: .3rem .7rem .3rem 0; vertical-align: top; }
 .detail-table td.shade { background-color: #F4DED6; }
 .detail-table td.muted { color: #AEA99C; }
+input.plot-tick { width: 1.05rem; height: 1.05rem; cursor: pointer; }
+.detail-table tr.res-row td { border-top: 2px solid #5E5A8C; }
+.detail-table td.res-missing { background-color: #F3DFA2; }
+.res-missing { background-color: #F3DFA2; padding: 1px 6px; border-radius: 3px; }
+"
+
+# Overview ticks: report each checkbox change to the server
+tick_js <- "
+$(document).on('change', 'input.plot-tick', function() {
+  Shiny.setInputValue('plot_tick', {id: $(this).data('id'), checked: this.checked},
+                      {priority: 'event'});
+});
 "
 
 ui <- page_navbar(
   title = "Joshua tree counts · observer agreement (v1, 2 reviewers)",
   theme = theme,
   fillable = FALSE,
-  header = tags$head(tags$style(HTML(app_css))),
+  header = tags$head(tags$style(HTML(app_css)), tags$script(HTML(tick_js))),
   sidebar = sidebar(
     width = 310,
     uiOutput("folder_status"),
@@ -786,13 +954,25 @@ ui <- page_navbar(
                   value = TRUE),
     tags$hr(),
     tags$strong("Agreement rule"),
-    numericInput("abs_tol", "Tolerance: trees", value = 2, min = 0, step = 1),
-    numericInput("rel_tol", "Tolerance: % of average", value = 20, min = 0, step = 5),
-    helpText("Counts must agree within tolerance: the difference between",
-             "the two observers may be no more than the tree tolerance, or",
-             "the % of their average -- whichever allows more. Vegetation",
-             "cover and suitability must match exactly instead."),
+    checkboxInput("use_abs", "Use tree tolerance", value = TRUE),
+    conditionalPanel("input.use_abs",
+      numericInput("abs_tol", "Tolerance: trees", value = 2, min = 0, step = 1)),
+    checkboxInput("use_rel", "Use % tolerance", value = TRUE),
+    conditionalPanel("input.use_rel",
+      numericInput("rel_tol", "Tolerance: % of average", value = 20, min = 0, step = 5)),
+    conditionalPanel("input.use_abs && input.use_rel",
+      radioButtons("tol_rule", "Counts agree if within",
+                   choices = c("either tolerance (looser)" = "either",
+                               "both tolerances (stricter)" = "both"),
+                   selected = "either")),
     uiOutput("tolerance_example"),
+    helpText("Untick a tolerance to leave it out; with neither, counts must",
+             "match exactly. Suitability must always match exactly.",
+             "14_build_consensus.R uses \"either\"."),
+    checkboxInput("check_veg", "Compare vegetation cover", value = FALSE),
+    helpText("When off, vegetation cover is not required and differences",
+             "in it don't send a plot to Team review; the final cover is",
+             "kept only where both observers agree."),
     helpText("Any disagreement goes to Team review -- there is no fourth",
              "reviewer or automatic escalation in this version."),
     tags$hr(),
@@ -806,7 +986,13 @@ ui <- page_navbar(
     uiOutput("status_note"),
     card(
       card_header(textOutput("plot_table_title", inline = TRUE)),
-      helpText("Click a row to show each observer's counts for that plot."),
+      helpText("Click a row to show each observer's counts for that plot.",
+               "Tick the box to add a plot to your selection."),
+      div(class = "d-flex flex-wrap align-items-center gap-3 mb-2",
+          checkboxInput("ticked_only", "Show ticked plots only", width = "auto"),
+          textOutput("ticked_count", inline = TRUE),
+          actionLink("clear_ticks", "Clear ticks"),
+          downloadButton("dl_ticked", "Download ticked (CSV)", class = "btn-sm")),
       DTOutput("plot_table", fill = FALSE)
     ),
     card(card_header("Observers"),
@@ -875,6 +1061,16 @@ ui <- page_navbar(
       p("Click a row to see both observers' entries underneath",
         "(disagreeing fields shaded red)."),
       DTOutput("team_review_table", fill = FALSE)
+    ),
+    card(
+      card_header(textOutput("resolved_title", inline = TRUE)),
+      helpText("Team review plots settled in a resolved export (file name",
+               "starting with \"resolved\"). Bold values were set by the",
+               "resolver; the others are the observers' agreed values.",
+               "Highlighted: a disagreeing field the resolver left blank.",
+               "Click a row to see the observers' entries and the resolution."),
+      uiOutput("resolved_files"),
+      DTOutput("resolved_table", fill = FALSE)
     )
   ),
 
@@ -1002,14 +1198,35 @@ server <- function(input, output, session) {
     raw
   })
 
+  # Observer exports vs. resolved exports (see resolved_pattern)
+  raw_obs <- reactive(filter(raw_all(), !is_resolved_file(source_file)))
+
   file_info <- reactive({
-    summarise_files(raw_all()) %>%
+    summarise_files(raw_obs()) %>%
       mutate(used = is_newest | !isTRUE(input$newest_only))
   })
 
   reads_all <- reactive({
     used_paths <- file_info()$source_path[file_info()$used]
-    clean_reads(filter(raw_all(), source_path %in% used_paths))
+    clean_reads(filter(raw_obs(), source_path %in% used_paths))
+  })
+
+  # Every resolved export is used; per plot, the latest saved resolution
+  resolved_all <- reactive({
+    r <- filter(raw_all(), is_resolved_file(source_file))
+    if (nrow(r) == 0) return(NULL)
+    clean_reads(r) %>%
+      filter(completed) %>%
+      group_by(id) %>%
+      arrange(desc(saved_date), desc(file_time), .by_group = TRUE) %>%
+      slice(1) %>%
+      ungroup()
+  })
+
+  resolved <- reactive({
+    r <- resolved_all()
+    if (!is.null(r) && length(input$fire_filter) > 0) r <- filter(r, fire_name %in% input$fire_filter)
+    r
   })
 
   observeEvent(reads_all(), {
@@ -1024,16 +1241,22 @@ server <- function(input, output, session) {
     r
   })
 
+  # A tolerance that is ticked off is NA, i.e. not used
   settings <- reactive({
-    list(abs_tol = max(0, input$abs_tol %||% 2, na.rm = TRUE),
-         rel_tol = max(0, input$rel_tol %||% 20, na.rm = TRUE))
+    list(abs_tol = if (isFALSE(input$use_abs)) NA_real_ else
+           max(0, input$abs_tol %||% 2, na.rm = TRUE),
+         rel_tol = if (isFALSE(input$use_rel)) NA_real_ else
+           max(0, input$rel_tol %||% 20, na.rm = TRUE),
+         rule = input$tol_rule %||% "either",
+         check_veg = isTRUE(input$check_veg))
   })
 
   low_conf <- reactive(low_confidence_by_plot(reads()))
 
   status <- reactive({
     s <- settings()
-    plot_status(reads(), s$abs_tol, s$rel_tol) %>%
+    plot_status(reads(), s$abs_tol, s$rel_tol, s$rule, s$check_veg) %>%
+      apply_resolutions(reads(), resolved(), s$check_veg) %>%
       left_join(select(low_conf(), id, pre_low, post_low, n_rated,
                        low_conf_label, low_conf_period), by = "id") %>%
       mutate(low_conf_label = coalesce(low_conf_label, ""))
@@ -1095,8 +1318,20 @@ server <- function(input, output, session) {
   })
 
   output$plot_table_title <- renderText({
-    if (is.null(selected_status())) "All plots" else paste("Plots:", selected_status())
+    title <- if (is.null(selected_status())) "All plots" else paste("Plots:", selected_status())
+    if (isTRUE(input$ticked_only)) paste(title, "(ticked only)") else title
   })
+
+  # Ticked plots: kept by plot ID until the app closes, so they survive
+  # table redraws when the data refreshes
+  ticked <- reactiveVal(character(0))
+  observeEvent(input$plot_tick, {
+    id <- as.character(input$plot_tick$id)
+    ticked(if (isTRUE(input$plot_tick$checked)) union(ticked(), id) else setdiff(ticked(), id))
+  })
+  observeEvent(input$clear_ticks, ticked(character(0)))
+
+  output$ticked_count <- renderText(paste(length(ticked()), "ticked"))
 
   plot_comments <- reactive({
     esc <- htmltools::htmlEscape
@@ -1115,11 +1350,18 @@ server <- function(input, output, session) {
     st <- status()
     showing <- selected_status()
     if (!is.null(showing)) st <- filter(st, status == showing)
+    # Only redraw on a tick when filtering by ticks; otherwise the checkbox
+    # already shows the change, and a redraw would reset the page
+    tk <- if (isTRUE(input$ticked_only)) ticked() else isolate(ticked())
+    if (isTRUE(input$ticked_only)) st <- filter(st, id %in% tk)
     d <- st %>%
       arrange(status, fire_name, id) %>%
       left_join(plot_comments(), by = "id") %>%
       left_join(plot_order(), by = "id") %>%
-      transmute(`CE #` = plot_number, Plot = id, Fire = fire_name,
+      transmute(` ` = sprintf("<input type='checkbox' class='plot-tick' data-id='%s'%s>",
+                              htmltools::htmlEscape(id, attribute = TRUE),
+                              if_else(id %in% tk, " checked", "")),
+                `CE #` = plot_number, Plot = id, Fire = fire_name,
                 Location = plot_location,
                 Status = status,
                 Counted = paste(n_obs, "of 2"),
@@ -1134,9 +1376,12 @@ server <- function(input, output, session) {
     d <- plot_table_data()
     comments_col <- match("Comments", names(d))
     expandable_datatable(
-      d, details(), filter = "top", raw_html_cols = "Comments",
+      d, details(), filter = "top", raw_html_cols = c(" ", "Comments"),
       dt_options = list(pageLength = 15, scrollX = TRUE, autoWidth = TRUE,
-                        columnDefs = list(list(width = "320px", targets = comments_col - 1)))
+                        order = list(list(1, "asc")),
+                        columnDefs = list(list(width = "320px", targets = comments_col - 1),
+                                          list(orderable = FALSE, searchable = FALSE,
+                                               targets = 0)))
     ) %>%
       formatStyle("Status", backgroundColor = styleEqual(status_levels,
                                                          unname(status_colors)),
@@ -1160,6 +1405,49 @@ server <- function(input, output, session) {
       arrange(fire_name, id) %>%
       transmute(Plot = id, Fire = fire_name, Location = plot_location, Issues = issues)
     expandable_datatable(d, details(), dt_options = list(pageLength = 15, scrollX = TRUE))
+  })
+
+  # Resolved ----
+  resolved_plots <- reactive(filter(status(), status == "Resolved"))
+
+  output$resolved_title <- renderText({
+    n <- nrow(resolved_plots())
+    n_missing <- sum(nzchar(resolved_plots()$res_missing))
+    paste0("Resolved plots (", n, if (n_missing > 0) paste0(", ", n_missing, " with fields missing"), ")")
+  })
+
+  output$resolved_files <- renderUI({
+    files <- unique(filter(raw_all(), is_resolved_file(source_file))$source_file)
+    if (length(files) == 0) return(helpText("No resolved export found yet."))
+    helpText(tags$em("Resolved export(s) in use:", paste(files, collapse = "; ")))
+  })
+
+  output$resolved_table <- renderDT({
+    d <- resolved_plots()
+    validate(need(nrow(d) > 0, "No Team review plots have been resolved yet."))
+    esc <- htmltools::htmlEscape
+    # Resolver's values in bold; a disagreeing field left blank highlighted
+    show <- function(value, need, missing) {
+      ifelse(missing, "<span class='res-missing'>missing</span>",
+             ifelse(is.na(value), "–",
+                    ifelse(need, paste0("<b>", esc(value), "</b>"), esc(value))))
+    }
+    d <- d %>%
+      arrange(fire_name, id) %>%
+      transmute(
+        Plot = id, Fire = fire_name, Location = plot_location,
+        `Was in review for` = issues, `Resolved by` = res_by,
+        Suitable = ifelse(res_unsuit, "<b>no</b>", "yes"),
+        `Pre-fire` = show(fmt_count(cons_pre), res_need_pre, res_need_pre & is.na(res_pre)),
+        `Post-fire` = show(fmt_count(cons_post), res_need_post, res_need_post & is.na(res_post)),
+        `Veg pre` = show(cons_pre_veg, res_need_vpre, res_need_vpre & is.na(res_vpre)),
+        `Veg post` = show(cons_post_veg, res_need_vpost, res_need_vpost & is.na(res_vpost)),
+        Mortality = ifelse(is.na(cons_mortality), "–", sprintf("%.0f%%", cons_mortality))
+      )
+    expandable_datatable(d, details(),
+                         raw_html_cols = c("Suitable", "Pre-fire", "Post-fire",
+                                           "Veg pre", "Veg post"),
+                         dt_options = list(pageLength = 15, scrollX = TRUE))
   })
 
   # Low confidence ----
@@ -1237,17 +1525,21 @@ server <- function(input, output, session) {
   output$low_confidence_pre_table <- render_low_table("pre")
   output$low_confidence_post_table <- render_low_table("post")
 
+  # One row per plot: coordinates and all observers' comments, for downloads
+  plot_coords <- reactive({
+    reads() %>%
+      group_by(id) %>%
+      summarise(longitude = first(na.omit(location_x)),
+                latitude = first(na.omit(location_y)),
+                comments = paste(na.omit(comments), collapse = " | "),
+                .groups = "drop")
+  })
+
   output$dl_low_conf <- downloadHandler(
     filename = function() paste0("jt_low_confidence_", Sys.Date(), ".csv"),
     content = function(file) {
-      coords <- reads() %>%
-        group_by(id) %>%
-        summarise(longitude = first(na.omit(location_x)),
-                  latitude = first(na.omit(location_y)),
-                  comments = paste(na.omit(comments), collapse = " | "),
-                  .groups = "drop")
       flagged_low() %>%
-        left_join(coords, by = "id") %>%
+        left_join(plot_coords(), by = "id") %>%
         arrange(fire_name, id) %>%
         transmute(plot_id = id, fire = fire_name, fire_year,
                   location = plot_location, low_confidence_count = low_conf_period,
@@ -1376,7 +1668,16 @@ server <- function(input, output, session) {
   })
 
   output$checks_table <- renderDT({
-    d <- data_checks(reads())
+    unused <- resolved()
+    if (!is.null(unused)) {
+      unused <- unused %>%
+        filter(!id %in% status()$id[status()$status %in% "Resolved"]) %>%
+        mutate(check = check_labels[["res_unused"]]) %>%
+        select(check, observer, id, fire_name, plot_location, jt_pre_fire,
+               pre_confidence, jt_post_fire, post_confidence, pre_veg, post_veg,
+               comments)
+    }
+    d <- bind_rows(data_checks(reads()), unused)
     if (input$check_filter != "All") {
       d <- filter(d, check == input$check_filter)
     }
@@ -1396,6 +1697,23 @@ server <- function(input, output, session) {
                                                       targets = c(5, 6, 7, 8)))))
   })
 
+  output$dl_ticked <- downloadHandler(
+    filename = function() paste0("jt_ticked_plots_", Sys.Date(), ".csv"),
+    content = function(file) {
+      status() %>%
+        filter(id %in% ticked()) %>%
+        left_join(plot_order(), by = "id") %>%
+        left_join(plot_coords(), by = "id") %>%
+        arrange(plot_number, id) %>%
+        transmute(ce_number = plot_number, plot_id = id, fire = fire_name, fire_year,
+                  location = plot_location, status, n_obs, observers, issues,
+                  pre_fire = cons_pre, post_fire = cons_post,
+                  pre_veg = cons_pre_veg, post_veg = cons_post_veg,
+                  low_confidence = low_conf_label, longitude, latitude, comments) %>%
+        write.csv(file, row.names = FALSE, na = "")
+    }
+  )
+
   output$dl_consensus <- downloadHandler(
     filename = function() paste0("jt_consensus_v1_", Sys.Date(), ".csv"),
     content = function(file) {
@@ -1408,7 +1726,7 @@ server <- function(input, output, session) {
                   mortality_pct = round(cons_mortality, 1),
                   pre_low_confidence = coalesce(pre_low, 0L),
                   post_low_confidence = coalesce(post_low, 0L),
-                  issues) %>%
+                  issues, resolved_by = res_by, resolution_missing = res_missing) %>%
         write.csv(file, row.names = FALSE, na = "")
     }
   )
@@ -1435,16 +1753,17 @@ server <- function(input, output, session) {
   # Sidebar ----
   output$tolerance_example <- renderUI({
     s <- settings()
-    tol <- function(m) format(round(max(s$abs_tol, s$rel_tol / 100 * m), 1))
+    tol <- function(m) format(round(allowed_difference(m, s$abs_tol, s$rel_tol, s$rule), 1))
     helpText(tags$em(sprintf(
-      "With these settings: a difference of up to %s tree(s) for plots averaging 5 trees, %s for 15, %s for 30.",
-      tol(5), tol(15), tol(30))))
+      "Counts agree within %s. With these settings: a difference of up to %s tree(s) for plots averaging 5 trees, %s for 15, %s for 30.",
+      rule_description(s$abs_tol, s$rel_tol, s$rule), tol(5), tol(15), tol(30))))
   })
 
   # How it works ----
   output$about_page <- renderUI({
     s <- settings()
-    shiny::markdown(about_markdown(s$abs_tol, s$rel_tol, input$newest_only, folder_source()))
+    shiny::markdown(about_markdown(s$abs_tol, s$rel_tol, s$rule, input$newest_only, folder_source(),
+                                   s$check_veg))
   })
 }
 

@@ -1,0 +1,309 @@
+<?xml version='1.0' encoding='UTF-8' standalone='yes' ?>
+<survey lastId="1803" created="2023-02-01T02:41:00.567-08:00" modified="2026-07-09T18:53:34.041-07:00" collectearth:openEarthMap="true" collectearth:plotarea="0.25" collectearth:samplepoints="0" collect:target="CE" collectearth:openGEEApp="false" xsi:schemaLocation="http://www.openforis.org/idml/3.0  &#9;&#9;https://raw.github.com/openforis/ollect/master/collect-core/src/main/resources/idml3.xsd       &#9;&#9;http://www.openforis.org/collect/3.0/ui  &#9;&#9;https://raw.github.com/openforis/collect/master/collect-core/src/main/resources/idml3-ui.xsd" collect:collectVersion="4.0.101" xmlns="http://www.openforis.org/idml/3.0" xmlns:collect="http://www.openforis.org/collect/3.0/collect" xmlns:ui="http://www.openforis.org/collect/3.0/ui" xmlns:collectearth="http://www.openforis.org/collect/3.0/collectearth" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <project xml:lang="fr">Projet DEMO - remplissez avec le nom de votre projet</project>
+  <project xml:lang="pt">Projeto DEMO - preencha com o nome do seu projeto</project>
+  <project xml:lang="es">Proyecto DEMO - complete con el nombre de su proyecto</project>
+  <project>JT Fire Recovery</project>
+  <uri>http://www.openforis.org/idm/jt_fire_recovery</uri>
+  <description xml:lang="es">Esta es la encuesta estándar que contiene todos los atributos necesarios para que funcione una encuesta Collect Earth, además de algunos atributos de demostración que muestran las opciones para el diseño de la encuesta.
+
+Puede generar el diseño de muestreo utilizando la aplicación Grid Generator GEE: https://collectearth.users.earthengine.app/view/collect-earth-grid-generator.
+
+Los archivos CSV con las ubicaciones de las parcelas deben agregarse a la encuesta a través de la sección Archivos adjuntos (tipo de cuadrícula) debajo de este texto.
+También puede agregar el archivo areas_per_attribute.csv para permitir los cálculos del área del factor de expansión del gráfico. Vea esto: https://openforis.support/questions/1061/assign-area-to-plots
+
+Debe utilizar este texto de descripción para documentar los cambios que realice en la encuesta.
+
+¡Use el botón VISTA PREVIA en la parte inferior de la página para ver el formulario a medida que lo edita!</description>
+  <description xml:lang="pt">Este é o levantamento padrão que contém todos os atributos necessários para que um levantamento Collect Earth funcione, além de alguns atributos de demonstração que mostram as opções para o design do levantamento.
+
+Você pode gerar o projeto de amostragem usando o Grid Generator GEE App: https://collectearth.users.earthengine.app/view/collect-earth-grid-generator.
+
+Os arquivos CSV com as localizações das parcelas devem ser adicionados ao levantamento através da seção Arquivos anexados (tipo grade) abaixo deste texto.
+Você também pode adicionar o arquivo areas_per_attribute.csv para permitir cálculos de área de fator de expansão de plotagem. Veja isto: https://openforis.support/questions/1061/assign-area-to-plots
+
+Você deve usar este texto descritivo para documentar as alterações feitas na pesquisa.
+
+Use o botão VISUALIZAR na parte inferior da página para visualizar o formulário enquanto o edita!</description>
+  <description xml:lang="fr">Il s'agit de l'enquête standard qui contient tous les attributs nécessaires au bon fonctionnement d'une enquête Collect Earth, ainsi que des attributs de démonstration présentant les options de conception de l'enquête.
+
+Vous pouvez générer le plan d'échantillonnage à l'aide de l'application Grid Generator GEE : https://collectearth.users.earthengine.app/view/collect-earth-grid-generator.
+
+Les fichiers CSV avec les emplacements des parcelles doivent être ajoutés à l'enquête via la section Fichiers joints (type de grille) sous ce texte.
+Vous pouvez également ajouter le fichier areas_per_attribute.csv pour permettre les calculs de surface du facteur d'expansion du tracé. Voir ceci : https://openforis.support/questions/1061/assign-area-to-plots
+
+Vous devez utiliser ce texte de description pour documenter les modifications que vous apportez à l'enquête.
+
+Utilisez le bouton PREVIEW en bas de la page pour voir le formulaire au fur et à mesure que vous le modifiez !</description>
+  <description>This is the standard survey that contains all the necessary attributes for a Collect Earth survey to work plus some demo attributes showcasing the options for the survey design.
+
+You can generate the sampling design using the Grid Generator GEE App : https://collectearth.users.earthengine.app/view/collect-earth-grid-generator.
+
+The CSV files with the plot locations should be added to the survey though the Attached Files (grid type) section below this text.
+You can also add the areas_per_attribute.csv file to allow for plot expansion-factor area calculations. See this : https://openforis.support/questions/1061/assign-area-to-plots
+
+You should use this description text to document the changes you make on the survey.
+
+Use the PREVIEW button on the bottom of the page to view the form as you edit it!</description>
+  <language>en</language>
+  <language>es</language>
+  <language>fr</language>
+  <language>pt</language>
+  <applicationOptions>
+    <options type="ui">
+<n0:tabSet name="plot_tab_set" xmlns:n0="http://www.openforis.org/collect/3.0/ui">
+  <n0:tab name="plot_tab">
+    <n0:label>Counts</n0:label>
+    <n0:label xml:lang="es">Primera pesta&#241;a con preguntas CAMBIALO!</n0:label>
+    <n0:label xml:lang="fr">Premier onglet avec des questions CHANGEZ-LE&#160;!</n0:label>
+    <n0:label xml:lang="pt">Primeira aba com perguntas MUDE!</n0:label>
+  </n0:tab>
+</n0:tabSet>
+    </options>
+  </applicationOptions>
+  <codeLists>
+    <list id="1301" name="sampling_design" lookup="ofc_sampling_design">
+      <hierarchy>
+        <level name="level1" />
+        <level name="level2" />
+        <level name="level3" />
+      </hierarchy>
+    </list>
+    <list id="1419" name="veg_cover">
+      <label type="item">Vegetation Cover</label>
+      <codingScheme scope="local" />
+      <items>
+        <item id="1421">
+          <code>low</code>
+          <label>Low (mostly bare ground)</label>
+        </item>
+        <item id="1422">
+          <code>medium</code>
+          <label>Medium (shrub cover)</label>
+        </item>
+        <item id="1423">
+          <code>high</code>
+          <label>High (tree and shrub cover)</label>
+        </item>
+      </items>
+    </list>
+    <list id="1618" name="count_confidence">
+      <label type="item">Count Confidence</label>
+      <codingScheme scope="local" />
+      <items>
+        <item id="1620">
+          <code>high</code>
+          <label>High confidence</label>
+        </item>
+        <item id="1726">
+          <code>medium</code>
+          <label>Medium confidence</label>
+        </item>
+        <item id="1621">
+          <code>low</code>
+          <label>Low Confidence</label>
+        </item>
+      </items>
+    </list>
+    <list id="1740" name="unsuitable">
+      <label type="item">Plot unsuitable</label>
+      <codingScheme scope="local" />
+      <items>
+        <item id="1741">
+          <code>unsuitable</code>
+          <label>Flag as unsuitable</label>
+        </item>
+      </items>
+    </list>
+  </codeLists>
+  <spatialReferenceSystems>
+    <spatialReferenceSystem srid="EPSG:4326">
+      <label xml:lang="en">EPSG:4326</label>
+      <description xml:lang="en">EPSG:World Geodetic System 1984
+				Horizontal component of 3D system. Used by the GPS satellite
+				navigation system and for NATO military geodetic surveying.</description>
+      <wkt><![CDATA[GEOGCS["WGS 84", 
+			  DATUM["World Geodetic System 1984", 
+			    SPHEROID["WGS 84", 6378137.0, 298.257223563, AUTHORITY["EPSG","7030"]], 
+			    AUTHORITY["EPSG","6326"]], 
+			  PRIMEM["Greenwich", 0.0, AUTHORITY["EPSG","8901"]], 
+			  UNIT["degree", 0.017453292519943295], 
+			  AXIS["Geodetic longitude", EAST], 
+			  AXIS["Geodetic latitude", NORTH], 
+			  AUTHORITY["EPSG","4326"]]]]>
+      </wkt>
+    </spatialReferenceSystem>
+  </spatialReferenceSystems>
+  <referenceDataSchema>
+    <samplingPoint />
+  </referenceDataSchema>
+  <schema>
+    <entity id="1" name="plot" ui:tab="plot_tab" ui:tabSet="plot_tab_set">
+      <label type="instance">Plot</label>
+      <label type="instance" xml:lang="es">Parcela</label>
+      <label type="instance" xml:lang="fr">Parcelle</label>
+      <text id="2" name="id" required="true" collectearth:showreadonlyfield="true" collectearth:includeinheader="true" collectearth:fromcsv="true" key="true" type="short">
+        <label type="instance">Plot - Id</label>
+        <label type="instance" xml:lang="es">Parcela - Id</label>
+        <label type="instance" xml:lang="fr">Parcelle - ID</label>
+        <label type="instance" xml:lang="pt">Parcela - Id</label>
+        <description>Unique identifier of the plot in the Collect Earth database. 
+This data comes from the CSV with the sampling-design.
+It should be contained in the first column of the CSV with the column header "id".
+DO NOT REMOVE!</description>
+        <description xml:lang="fr">Identifiant unique de la parcelle dans la base de données Collect Earth.
+Ces données proviennent du CSV avec le plan d'échantillonnage.
+Il doit être contenu dans la première colonne du CSV avec l'en-tête de colonne "id".
+NE PAS ENLEVER!</description>
+        <description xml:lang="es">Identificador único de la parcela en la base de datos de Collect Earth.
+Este dato proviene del CSV con el diseño de muestreo.
+Debe estar contenido en la primera columna del CSV con el encabezado de columna "id".
+¡NO QUITAR!</description>
+        <description xml:lang="pt">Identificador exclusivo da parcela no banco de dados Collect Earth.
+Esses dados vêm do CSV com o design de amostragem.
+Deve estar contido na primeira coluna do CSV com o cabeçalho da coluna "id".
+NÃO REMOVA!</description>
+      </text>
+      <coordinate id="3" name="location">
+        <label type="instance">Plot - Central Point coordinates</label>
+        <label type="instance" xml:lang="es">Parcela - Coordenadas del punto central</label>
+        <label type="instance" xml:lang="fr">Parcelle - Coordonnées du point central</label>
+        <label type="instance" xml:lang="pt">Parcela - Coordenadas do ponto central</label>
+        <description>Central point coordinates of the plot used to generate the KML loaded in Google Earth. 
+This data comes from the CSV with the sampling-design using the columns YCoordinate and XCoordinate.
+DO NOT REMOVE!</description>
+        <description xml:lang="es">Coordenadas del punto central de la trama utilizada para generar el KML cargado en Google Earth.
+Estos datos provienen del CSV con el diseño de muestreo utilizando las columnas YCoordinate y XCoordinate.
+¡NO QUITAR!</description>
+        <description xml:lang="pt">Coordenadas do ponto central do gráfico usado para gerar o KML carregado no Google Earth.
+Esses dados vêm do CSV com o design de amostragem usando as colunas YCoordinate e XCoordinate.
+NÃO REMOVA!</description>
+        <description xml:lang="fr">Coordonnées du point central du tracé utilisé pour générer le KML chargé dans Google Earth.
+Ces données proviennent du CSV avec le plan d'échantillonnage utilisant les colonnes YCoordinate et XCoordinate.
+NE PAS ENLEVER!</description>
+      </coordinate>
+      <text id="4" name="operator" type="short">
+        <label type="instance">Plot - Operator</label>
+        <label type="instance" xml:lang="es">Parcela - Operador</label>
+        <label type="instance" xml:lang="fr">Parcelle - Opérateur</label>
+        <label type="instance" xml:lang="pt">Parcela - Operador</label>
+        <description>Internal attribute used by Collect Earth to record which interpreter assessed a plot.
+The name of the interpreter comes from Collect Earth main window where the user needs to fill his/her operate identifier.
+
+DO NOT REMOVE!</description>
+        <description xml:lang="pt">Atributo interno usado pelo Collect Earth para registrar qual intérprete avaliou uma parcela.
+O nome do intérprete vem da janela principal do Collect Earth onde o usuário precisa preencher seu identificador de operação.
+
+NÃO REMOVA!</description>
+        <description xml:lang="es">Atributo interno utilizado por Collect Earth para registrar qué intérprete evaluó una parcela.
+El nombre del intérprete proviene de la ventana principal de Collect Earth, donde el usuario debe completar su identificador de operación.
+
+¡NO QUITAR!</description>
+        <description xml:lang="fr">Attribut interne utilisé par Collect Earth pour enregistrer quel interprète a évalué un tracé.
+Le nom de l'interpréteur provient de la fenêtre principale de Collect Earth où l'utilisateur doit remplir son identifiant de fonctionnement.
+
+NE PAS ENLEVER!</description>
+      </text>
+      <boolean id="8" name="actively_saved">
+        <label type="instance">Plot - Actively saved by user (green tick)</label>
+        <label type="instance" xml:lang="es">Parcela - guardado activamente por el usuario (marca verde)</label>
+        <label type="instance" xml:lang="fr">Parcelle - Enregistré activement par l'utilisateur (coche verte)</label>
+        <label type="instance" xml:lang="pt">Parcela - salvo ativamente pelo usuário (marca verde)</label>
+        <description>Internal attribute used by Collect Earth to track if a plot has been fully assessed and has no validation issues.
+If the user starts filling the data of a plot without fully answering all the questions this value will be FALSE (0)
+When the user fills the data on the Google Earth balloon and finally clicks on the send button,, and if the plots attributes validation rules are passes, this value becomes TRUE (1) and the user sees a GREEN TICK on the list of plots on the Google Earth interface.
+
+DO NOT REMOVE!</description>
+        <description xml:lang="es">Atributo interno utilizado por Collect Earth para comprobar si una parcela se ha evaluado completamente y no tiene problemas de validación.
+Si el usuario empieza a llenar los datos de una parcela sin contestar completamente todas las preguntas este valor será FALSO (0)
+Cuando el usuario completa los datos en Google Earth y finalmente hace clic en el botón Enviar, y si se pasan las reglas de validación de los atributos de las parcelas, este valor se convierte en VERDADERO (1) y el usuario ve una MARCA VERDE en la lista de parcelas en la interfaz de Google Earth.
+
+¡NO QUITAR!</description>
+        <description xml:lang="fr">Attribut interne utilisé par Collect Earth pour savoir si une parcelle a été entièrement évaluée et n'a pas de problèmes de validation.
+Si l'utilisateur commence à remplir les données d'un tracé sans répondre complètement à toutes les questions, cette valeur sera FALSE (0)
+Lorsque l'utilisateur renseigne les données sur Google Earth et clique enfin sur le bouton envoyer, et si les règles de validation des attributs des parcelles sont respectées, cette valeur devient TRUE (1) et l'utilisateur voit un COCHE VERT sur la liste des parcelles sur l'interface de Google Earth.
+
+NE PAS ENLEVER!</description>
+        <description xml:lang="pt">Atributo interno usado pelo Collect Earth para rastrear se um lote foi totalmente avaliado e não apresenta problemas de validação.
+Caso o usuário comece a preencher os dados de uma parcela sem responder totalmente a todas as questões este valor será FALSO (0)
+Quando o usuário preenche os dados no balão do Google Earth e finalmente clica no botão enviar, e se as regras de validação dos atributos das parcelas são aprovadas, esse valor se torna VERDADEIRO (1) e o usuário vê um TICK VERDE na lista de parcelas em a interface do Google Earth.
+
+NÃO REMOVA!</description>
+      </boolean>
+      <date id="9" name="actively_saved_on" relevant="false()">
+        <label type="instance">Plot - Last saved on</label>
+        <label type="instance" xml:lang="es">Parcela - Guardada por ultima vez</label>
+        <label type="instance" xml:lang="fr">Parcelle – Dernier enregistrement le</label>
+        <label type="instance" xml:lang="pt">Parcela - Último salvo em</label>
+        <description>Internal attribute used by Collect Earth to track the last time the plot data has been modified.
+
+DO NOT REMOVE!</description>
+        <description xml:lang="es">Atributo interno utilizado por Collect Earth para rastrear la última vez que se modificaron los datos de la parcela.
+
+¡NO QUITAR!</description>
+        <description xml:lang="pt">Atributo interno usado pelo Collect Earth para rastrear a última vez que os dados do gráfico foram modificados.
+
+NÃO REMOVA!</description>
+        <description xml:lang="fr">Attribut interne utilisé par Collect Earth pour suivre la dernière fois que les données du tracé ont été modifiées.
+
+NE PAS ENLEVER!</description>
+      </date>
+      <text id="10" name="plot_file" relevant="false()" type="short">
+        <label type="instance">Plot - CSV file that contains the plot</label>
+        <label type="instance" xml:lang="es">Parcela - Archivo CSV que contiene al plot</label>
+        <label type="instance" xml:lang="fr">Placette - Fichier CSV qui contient le point</label>
+        <label type="instance" xml:lang="pt">Parcela - Fichier CSV contenant le tracé</label>
+        <description>Internal attribute used by Collect Earth to track which CSV with the plot sampling-design contains this plots.
+Usually there will be multiple CSV files, for instance in an assessment of Italy you will have CSV files that contains the plots to be assessed by region, Lazio.csv, Sicilia.csv and so on. This attribute will keep the name of the file.
+This attribute is useful when it is required to re-visit a plot during data cleansing.
+
+DO NOT REMOVE!</description>
+        <description xml:lang="fr">Attribut interne utilisé par Collect Earth pour suivre quel CSV avec le plan d'échantillonnage de parcelle contient ces parcelles.
+Habituellement, il y aura plusieurs fichiers CSV, par exemple dans une évaluation de l'Italie, vous aurez des fichiers CSV qui contiennent les parcelles à évaluer par région, Lazio.csv, Sicilia.csv et ainsi de suite. Cet attribut conservera le nom du fichier.
+Cet attribut est utile lorsqu'il est nécessaire de revisiter une parcelle lors du nettoyage des données.
+
+NE PAS ENLEVER!</description>
+        <description xml:lang="pt">Atributo interno usado pelo Collect Earth para rastrear qual CSV com o desenho de amostragem de parcela contém essas parcelas.
+Normalmente, haverá vários arquivos CSV, por exemplo, em uma avaliação da Itália, você terá arquivos CSV que contêm as parcelas a serem avaliadas por região, Lazio.csv, Sicilia.csv e assim por diante. Este atributo manterá o nome do arquivo.
+Este atributo é útil quando é necessário visitar novamente um gráfico durante a limpeza de dados.
+
+NÃO REMOVA!</description>
+        <description xml:lang="es">Atributo interno utilizado por Collect Earth para rastrear qué CSV con el diseño de muestreo de parcelas contiene estas parcelas.
+Por lo general, habrá varios archivos CSV, por ejemplo, en una evaluación de Italia, tendrá archivos CSV que contienen las parcelas que se evaluarán por región, Lazio.csv, Sicilia.csv, etc. Este atributo mantendrá el nombre del archivo.
+Este atributo es útil cuando se requiere volver a visitar un gráfico durante la limpieza de datos.
+
+¡NO QUITAR!</description>
+      </text>
+      <text id="1583" name="fire_name" required="true" collectearth:showreadonlyfield="true" collectearth:includeinheader="true" ui:tab="plot_tab" collectearth:fromcsv="true" key="true" type="short">
+        <label type="instance">Fire Name</label>
+      </text>
+      <text id="1594" name="fire_date" required="true" collectearth:showreadonlyfield="true" collectearth:includeinheader="true" ui:tab="plot_tab" collectearth:fromcsv="true" key="true" type="short">
+        <label type="instance">Fire Date</label>
+      </text>
+      <number id="1403" name="jt_pre_fire" ui:tab="plot_tab" type="integer">
+        <label type="instance">JT pre-fire count</label>
+      </number>
+      <code id="1617" name="pre_confidence" ui:tab="plot_tab" list="count_confidence">
+        <label type="instance">JT pre count confidence</label>
+      </code>
+      <code id="1657" name="pre_vegetation_cover" ui:tab="plot_tab" list="veg_cover">
+        <label type="instance">Pre-fire vegetation cover</label>
+      </code>
+      <number id="1412" name="jt_post_fire" ui:tab="plot_tab" type="integer">
+        <label type="instance">JT post-fire count</label>
+      </number>
+      <code id="1644" name="post_confidence" ui:tab="plot_tab" list="count_confidence">
+        <label type="instance">JT post count confidence</label>
+      </code>
+      <code id="1705" name="post_vegetation_cover" ui:tab="plot_tab" list="veg_cover">
+        <label type="instance">Post-fire vegetation cover (1-3 years after fire)</label>
+      </code>
+      <text id="1470" name="comments" ui:tab="plot_tab" type="memo">
+        <label type="instance">Comments</label>
+      </text>
+      <code id="1727" name="plot_unsuitable" ui:tab="plot_tab" list="unsuitable">
+        <label type="instance">Plot unsuitable (add reason to comments)</label>
+      </code>
+    </entity>
+  </schema>
+</survey>
